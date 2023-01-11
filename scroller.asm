@@ -1,14 +1,22 @@
 //#import "routines/scroll.asm"
-
-.var yScroll=$d011
-.var xScroll=$d016
-
 :BasicUpstart2(main)
 
-main:
-    //lda #$00
-    //sta xScroll
+.var y_scroll=$d011
+.var x_scroll=$d016
+.var screen_start=$0400
 
+.var continue_basic=$ea31
+.var continue_short=$ea81
+
+start_char:     .byte   $41
+end_char:       .byte   $57
+char:           .byte   start_char
+pixel_offset:   .byte   00
+char_pointer:   .word   screen_start
+
+main:
+    jsr disable_cursor
+    
     // disable interrupts
     sei           
     // switch off interrupt signals from CIA-1                     
@@ -25,7 +33,7 @@ main:
     lda $dd0d
 
     // set rasterline where interrupt shall occur
-    lda $0
+    lda #$fb // after text
     sta $d012
 
     // set interrupt vectors, pointing to interrupt service routine below
@@ -42,29 +50,56 @@ main:
     cli
     rts
 scroll:
+    lda #$00
+    sta $d020
     // increment offset
-    lda offset
-    adc #01
-    and #07
-    sta offset
+    lda pixel_offset
+    adc #$01
+    and #$07
+    sta pixel_offset
 
     // load current scroll
-    lda xScroll
+    lda x_scroll
     // remove current scroll offset
     and #%11111000
     // set new scroll offset keeping other bit values
-    adc offset
+    adc pixel_offset
     
-    sta xScroll
+    sta x_scroll
 
-    and #07
-    beq shiftText
+    and #$07
+    beq shift_text
 continue:
     // ; acknowledge the interrupt by clearing the VIC's interrupt flag
     asl $d019
-    jmp $ea31
-shiftText:
+    lda #$0e
+    sta $d020
+    jmp continue_short
+shift_text:
+    //inc $d021
+    ldx #$00
+    lda char
+copy_char: 
+    sta screen_start,x
+    sta screen_start+256,x
+    sta screen_start+256*2,x
+    sta screen_start+256*3,x
+    dex
+    bne copy_char
     
+    inc char
+    lda char
+    cmp end_char
+    bne done
+    lda start_char
+    sta char
+done:
     jmp continue
-
-offset: .byte 00
+disable_cursor:
+    // wait for cursor to blink out
+    lda $cf
+    bne disable_cursor
+    lda #$01
+    sta $cc
+    rts
+    
