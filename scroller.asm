@@ -3,7 +3,6 @@
 
 .var y_scroll=$d011
 .var x_scroll=$d016
-.var screen_start=$0400
 
 .var continue_basic=$ea31
 .var continue_short=$ea81
@@ -12,7 +11,6 @@ start_char:     .byte   $41
 end_char:       .byte   $57
 char:           .byte   start_char
 pixel_offset:   .byte   00
-char_pointer:   .word   screen_start
 
 main:
     jsr disable_cursor
@@ -80,11 +78,11 @@ shift_text:
     ldx #$00
     lda char
 copy_char: 
-    sta screen_start,x
-    sta screen_start+256,x
-    sta screen_start+256*2,x
-    sta screen_start+256*3,x
-    dex
+    sta $0400,x
+    sta $0500,x
+    sta $0600,x
+    sta $0700,x
+    inx
     bne copy_char
     
     inc char
