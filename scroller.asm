@@ -1,4 +1,5 @@
 #import "routines/scroll.asm"
+#import "routines/fill-screen-direct.asm"
 
 :BasicUpstart2(main)
 
@@ -12,6 +13,7 @@ pixel_offset:   .byte   00
 
 main:
     jsr disable_cursor
+    FillScreen($2a)
     
     // disable interrupts
     sei           
@@ -29,7 +31,7 @@ main:
     lda $dd0d
 
     // set rasterline where interrupt shall occur
-    lda #$fb // after text
+    lda #$00
     sta $d012
 
     // set interrupt vectors, pointing to interrupt service routine below
@@ -46,6 +48,7 @@ main:
     cli
     rts
 scroll:
+    // use border to show processing time
     lda #$00
     sta $d020
     

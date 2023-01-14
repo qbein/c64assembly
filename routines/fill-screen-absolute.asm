@@ -1,5 +1,5 @@
-    // fill screen with absolute indexing
-    
+// fill screen with absolute indexing though zero page pointer
+.macro FillScreen(char) {
     // setup screen pointer
     lda #$00
     sta $f7
@@ -10,7 +10,7 @@
     ldx #$04
 
     // character to fill (space)
-    lda #$20
+    lda #char
 loop: 
     // write character
     sta ($f7),y
@@ -22,3 +22,4 @@ loop:
     dex
     // continue until all 4 pages are filled
     bne loop
+}
