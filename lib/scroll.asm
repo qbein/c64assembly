@@ -1,11 +1,12 @@
 .var y_scroll=$d011
 .var x_scroll=$d016
 
-// soft scroll screen 1px left
-.macro ScrollLeft() {
+// soft scroll screen 1px left.
+// accumulator will be set to number of chars to shift.
+.macro ScrollLeft(amount) {
     lda x_scroll
     sec
-    sbc #$01
+    sbc #amount
     and #$07
     sta $fb
     //sta pixel_offset
@@ -20,9 +21,19 @@
     
     sta x_scroll
 
-    // shift text when jumping back to 7
-    and #$07
-    cmp #$07
+    ldy #$00
+    lda $fb
+
+shift:
+    ror
+    ror
+    ror
+    and #%00011111
+    beq done
+    iny
+    jmp shift
+done:
+    tya
 }
 
 // save character that is about to be moved off to the left
