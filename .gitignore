@@ -1,3 +1,9 @@
 bin
+.DS_Store
+*.sym
+*.dbg
 *.prg
-*.syn
+.source.txt
+.python-version
+*.vs
+KickAssembler.pdf

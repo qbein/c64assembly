@@ -52,8 +52,16 @@ scroll:
     lda #$00
     sta $d020
     
-    ScrollLeft()
-    beq shift_text
+    ScrollLeft(1)
+    beq done
+    tay
+shift:
+    jsr shift_text
+    dey
+    tya
+    bne shift
+done:
+    jmp continue
 continue:
     // ; acknowledge the interrupt by clearing the VIC's interrupt flag
     asl $d019
@@ -152,8 +160,7 @@ loop2:
     InsertOverflowCharRight($0400, $5400, 23)
     InsertOverflowCharRight($0400, $5400, 24)
     InsertOverflowCharRight($0400, $5400, 25)
-done:
-    jmp continue
+    rts
 disable_cursor:
     // wait for cursor to blink out
     lda $cf
