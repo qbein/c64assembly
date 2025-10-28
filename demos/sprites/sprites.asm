@@ -3,130 +3,160 @@
 
 BasicUpstart2(start)
 
-*= $C000
-sin01:
-    .byte $FA,$04,$0E,$17,$20,$29,$32,$39
-    .byte $41,$47,$4D,$52,$56,$5A,$5C,$5E
-    .byte $5E,$5E,$5C,$5A,$56,$52,$4D,$47
-    .byte $41,$39,$32,$29,$20,$17,$0E,$04
-    .byte $FA,$F0,$E6,$DD,$D4,$CB,$C2,$BB
-    .byte $B3,$AD,$A7,$A2,$9E,$9A,$98,$96
-    .byte $96,$96,$98,$9A,$9E,$A2,$A7,$AD
-    .byte $B3,$BB,$C2,$CB,$D4,$DD,$E6,$F0
+*= $2000
+sprite01:
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+    .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
-sin01_offset:
+*= $C000
+sin1:
+    .byte $AB,$BA,$C8,$D6,$E4,$F1,$FD,$09
+    .byte $14,$1D,$26,$2E,$34,$39,$3C,$3E
+    .byte $3F,$3E,$3C,$39,$34,$2E,$26,$1D
+    .byte $14,$09,$FD,$F1,$E4,$D6,$C8,$BA
+    .byte $AB,$9C,$8E,$80,$72,$65,$59,$4D
+    .byte $42,$39,$30,$28,$22,$1D,$1A,$18
+    .byte $17,$18,$1A,$1D,$22,$28,$30,$39
+    .byte $42,$4D,$59,$65,$72,$80,$8E,$9C
+
+sin1_ub:
+    .byte 0,0,0,0,0,0,0,1
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+
+sin1_offset:
+    .byte $0
+
+sin2:
+    .byte $8B,$97,$A2,$AD,$B8,$C1,$CA,$D2
+    .byte $D8,$DD,$E1,$E3,$E4,$E3,$E1,$DD
+    .byte $D8,$D2,$CA,$C1,$B7,$AD,$A2,$97
+    .byte $8B,$7F,$74,$69,$5F,$55,$4C,$44
+    .byte $3E,$39,$35,$33,$32,$33,$35,$39
+    .byte $3E,$44,$4C,$55,$5E,$69,$74,$7F
+
+
+sin2_offset:
     .byte $0
 
 *= $0810
 start:
+    jsr init_sprites
+
     sei
+
+    // disable CIA interrupts:
     lda #%01111111
     sta $dc0d
     sta $dd0d
 
-    lda $d011
-    and #%01111111
+    // select VIC bank 0 ($0000-$3FFF)
+    lda #%00000011
+    sta $dd00
+
+    // turn screen on, 25-row text mode
+    lda #%00011011
     sta $d011
+    // standard horizontal scroll
+    lda #%00001000
+    sta $d016 
 
-    //and $d011
-    //sta $d011
-
-    lda #60
+    lda #25
     sta $d012
 
-    lda #<set_color
-    sta $0314
-    lda #>set_color
-    sta $0315
+    // use hardware vectors for setting interrupt
+    lda #<move_sprites
+    sta $fffe
+    lda #>move_sprites
+    sta $ffff
 
+    // enable raster IRQ
     lda #%00000001
-    sta $d019
     sta $d01a
 
-    // reset background colors
-    lda $0
-    sta $d020
-    sta $d021
+    // keep IO on, but switch out BASIC+KERNAL
+    lda #%00110101
+    sta $01
 
     cli
-    rts
+    jmp *
     
-set_color:
-    asl $d019
-    
-    ldy #$4
-before:
-    dey
-    bne before
-
-    lda #4    
-    sta $d020
-    sta $d021
-    
-    ldy #$a
-after:
-    dey
-    bne after
-
-    lda #$0
-    sta $d020
-    sta $d021
-
-
-    ldx sin01_offset
-    inx
-    cpx #65
-    bne continue
-    ldx #0
-continue:
-    lda sin01,x
-    sta $d012
-    stx sin01_offset
-
-    jmp continue_short
-
-show_sprites:
-    // enable all sprites
-    lda #$ff
+init_sprites:
+    lda #%11111111
     sta $d015
-    
+
     // set all sprite colors to white
     lda #$01
-    sta $d027
-    sta $d028
-    sta $d029
-    sta $d02a
-    sta $d02b
-    sta $d02c
-    sta $d02d
+    ldx #8
+    sta $d027, x
+    dex
+    bne *-4
+    
+    // position all sprites out of view
+    ldx #8
+    lda #0
+    sta $d000, x
+    dex
+    bne *-4
 
-    // position sprite #0 - top left
-    lda #24
+    lda #50
+    sta $d001    
+    sta $d000    
+
+    // sprite data in $2000 (0x80 * 64)
+    lda #$80
+    sta $07f8
+
+    rts
+
+move_sprites:
+    lda #$01
+    sta $d019
+
+    lda $6
+    sta $d020
+    
+    ldx sin1_offset
+    lda sin1, x
     sta $d000
-    lda #50
-    sta $d001
 
-    // position sprite #1 - top right (see 8th bit)
-    lda #$40
-    sta $d002
-    lda #50
-    sta $d003
-
-    // position sprite #3 - bottom left
-    lda #24
-    sta $d004
-    lda #229
-    sta $d005
-
-    // position sprite #3 - bottom right (see 8th bit)
-    lda #$40
-    sta $d006
-    lda #$e5
-    sta $d007
-
+    lda #0
+    sta $d010
+    lda sin1_ub, x
+    ora $d010
     // x position 8th bit for sprites:
-    lda #%00001010
+    //lda #%00000001
     sta $d010
 
+    inx
+    cpx #64
+    bne *+4
+    ldx #0
+    stx sin1_offset
 
+    ldx sin2_offset
+    lda sin2, x
+    sta $d001
 
+    inx
+    cpx #48
+    bne *+4
+    ldx #0
+    stx sin2_offset
+
+    
+    lda $0a
+    sta $d020
+
+    rti
