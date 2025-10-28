@@ -3,7 +3,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
-def generate_wave(start_angle, end_angle, count, amplitude, offset, degrees=True):
+def generate_wave(start_angle, end_angle, count, offset, amplitude, degrees=True):
     """Generate one sine wave of a given sample count."""
     table = []
     # Since start and end values are the same, we generate one more item
@@ -29,21 +29,21 @@ def combine_waves_cyclic(waves, out_count):
     return result
 
 
-def format_table(table, name:str, values_per_line=8):
+def format_table(table, label:str, values_per_line=8):
     """Format a numeric table for assembler or plain output."""
     fmt_value = lambda v: f"${int(round(v)) & 0xFF:02X}"
     
-    lines = [f"; {name}\n"]
+    lines = [f"{label}:"]
     for i in range(0, len(table), values_per_line):
         chunk = table[i:i + values_per_line]
         line = "    .byte " + ",".join(fmt_value(v) for v in chunk)
         lines.append(line)
 
     if not any(x > 0xff for x in table):
-        return lines
+        return "\n".join(lines)
     
-    lines.append("\n")
-    lines.append(f"; {name} (upper bytes)\n")
+    lines.append("")
+    lines.append(f"{label}_ub:")
 
     for i in range(0, len(table), values_per_line):
         chunk = table[i:i + values_per_line]
@@ -85,9 +85,7 @@ def main():
     parser.add_argument("--count", type=int, default=64, help="Number of samples in the combined output (default: 64).")
     parser.add_argument("--degrees", action="store_true", help="Interpret angles as degrees (default).")
     parser.add_argument("--radians", action="store_true", help="Interpret angles as radians.")
-    parser.add_argument("--assembler", action="store_true", help="Output as assembler-formatted .byte lines.")
     parser.add_argument("--values-per-line", type=int, default=8, help="Values per .byte line (default: 8).")
-    parser.add_argument("--hex", action="store_true", help="Output values as hexadecimal (e.g. $FF).")
     parser.add_argument("--plot", action="store_true", help="Display a matplotlib visualization of the sine table.")
 
     args = parser.parse_args()
@@ -107,7 +105,7 @@ def main():
         # Output each individual wave table
         print(format_table(
             wave,
-            name=f"Wave {idx+1}",
+            label=f"sin{idx+1}",
             values_per_line=args.values_per_line
         ))
         print()
@@ -115,13 +113,6 @@ def main():
     if len(waves) > 1:
         # Combine all waves additively
         combined = combine_waves_cyclic(waves, args.count)
-
-        # Output the combined wave
-        print(format_table(
-            combined,
-            name="Combined",
-            values_per_line=args.values_per_line
-        ))
 
     # Optional plot
     if args.plot:
