@@ -15,7 +15,7 @@ sprite01:
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
 *= $C000
-sin1:
+sinx:
     .byte $AB,$BA,$C8,$D6,$E4,$F1,$FD,$09
     .byte $14,$1D,$26,$2E,$34,$39,$3C,$3E
     .byte $3F,$3E,$3C,$39,$34,$2E,$26,$1D
@@ -25,7 +25,7 @@ sin1:
     .byte $17,$18,$1A,$1D,$22,$28,$30,$39
     .byte $42,$4D,$59,$65,$72,$80,$8E,$9C
 
-sin1_ub:
+sinx_ub:
     .byte 0,0,0,0,0,0,0,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
@@ -35,10 +35,10 @@ sin1_ub:
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
 
-sin1_offset:
+sinx_offset:
     .byte $0
 
-sin2:
+siny:
     .byte $8B,$97,$A2,$AD,$B8,$C1,$CA,$D2
     .byte $D8,$DD,$E1,$E3,$E4,$E3,$E1,$DD
     .byte $D8,$D2,$CA,$C1,$B7,$AD,$A2,$97
@@ -47,7 +47,16 @@ sin2:
     .byte $3E,$44,$4C,$55,$5E,$69,$74,$7F
 
 
-sin2_offset:
+siny_offset:
+    .byte $0
+
+x_pos:
+    .byte $0
+y_pos:
+    .byte $0
+sprite_idx:
+    .byte $0
+tmp01:
     .byte $0
 
 *= $0810
@@ -97,18 +106,20 @@ init_sprites:
     sta $d015
 
     // set all sprite colors to white
-    lda #$01
-    ldx #8
+    ldx #0
+    lda #$a
     sta $d027, x
-    dex
-    bne *-4
+    inx
+    cpx #8
+    bne *-6
     
     // position all sprites out of view
-    ldx #8
+    ldx #0
     lda #0
     sta $d000, x
-    dex
-    bne *-4
+    inx
+    cpx #8
+    bne *-6
 
     lda #50
     sta $d001    
@@ -116,47 +127,132 @@ init_sprites:
 
     // sprite data in $2000 (0x80 * 64)
     lda #$80
-    sta $07f8
-
+    ldx #0
+    sta $07f8, x
+    inx
+    cpx #8
+    bne *-6
+    
     rts
 
 move_sprites:
+    // ack interrupt
     lda #$01
     sta $d019
 
-    lda $6
+    // set border color
+    lda #$01
     sta $d020
-    
-    ldx sin1_offset
-    lda sin1, x
-    sta $d000
 
-    lda #0
-    sta $d010
-    lda sin1_ub, x
-    ora $d010
-    // x position 8th bit for sprites:
-    //lda #%00000001
-    sta $d010
-
+    // load and set y position
+    ldx siny_offset
     inx
-    cpx #64
-    bne *+4
-    ldx #0
-    stx sin1_offset
-
-    ldx sin2_offset
-    lda sin2, x
-    sta $d001
-
-    inx
+    // wrap around if we've overflowed the sin data
     cpx #48
     bne *+4
     ldx #0
-    stx sin2_offset
+    stx siny_offset
 
+    // load and set x position
+    ldx sinx_offset
+    inx
+    // wrap around if we've overflowed the sin data
+    cpx #64
+    bne *+4
+    ldx #0
+    stx sinx_offset
+
+    // x now holds next x offset
+
+    // y and $cd holds sprite index
+    lda #0
+    sta sprite_idx
+
+//    .break
+
+    // reset all sprites upper bit
+    lda #0
+    sta $d010
+
+sprite_loop:
+    // .break
+    // x-position
+    // $cd holds sprite index
+    lda sinx_offset
+    adc sprite_idx
+    adc sprite_idx
+    adc sprite_idx
+    adc sprite_idx
     
-    lda $0a
+    // wrap around if we've overflowed the sin data
+    cmp #64
+    bcc !+
+    sbc #64
+!:
+
+    cmp #64
+    bne *+4
+    lda #0
+
+    // move sin offset index to x
+    tax
+
+    // multiply sprite index with 2 for correct sprite pos offset
+    lda sprite_idx
+    asl
+    tay
+    
+    // y holds sprites x position offset
+    lda sinx, x
+    sta $d000, y
+
+    // set high bit
+    lda sinx_ub, x
+    // acc now holds upper bit value for sprite
+    
+    // shift to correct position for sprite index
+    sty tmp01
+    ldy sprite_idx
+    cpy #0
+    beq *+7
+    dey
+    asl
+    jmp *-6
+    ora $d010
+    sta $d010
+    ldy tmp01
+
+    // y-position
+
+    // $cd holds sprite index
+    lda siny_offset
+    adc sprite_idx
+    adc sprite_idx
+    adc sprite_idx
+    adc sprite_idx
+    tax
+    
+    // wrap around if we've overflowed the sin data
+    cpx #47
+    bcc !+
+    pha
+    txa 
+    sbc #47
+    tax
+    pla
+!:
+    lda siny, x
+    sta $d001, y
+
+    // move to next sprite index
+    inc sprite_idx
+    lda sprite_idx
+    // exit if all sprintes are handled
+    cmp #7
+    bne sprite_loop
+
+    // reset border color
+    lda #$0e
     sta $d020
 
     rti
