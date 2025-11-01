@@ -16,20 +16,36 @@ sprite01:
 
 *= $C000
 sinx:
-    .byte $AB,$BA,$C8,$D6,$E4,$F1,$FD,$09
-    .byte $14,$1D,$26,$2E,$34,$39,$3C,$3E
-    .byte $3F,$3E,$3C,$39,$34,$2E,$26,$1D
-    .byte $14,$09,$FD,$F1,$E4,$D6,$C8,$BA
-    .byte $AB,$9C,$8E,$80,$72,$65,$59,$4D
-    .byte $42,$39,$30,$28,$22,$1D,$1A,$18
-    .byte $17,$18,$1A,$1D,$22,$28,$30,$39
-    .byte $42,$4D,$59,$65,$72,$80,$8E,$9C
+    .byte $AB,$B2,$BA,$C1,$C8,$CF,$D6,$DD
+    .byte $E4,$EA,$F1,$F7,$FD,$03,$09,$0E
+    .byte $14,$19,$1D,$22,$26,$2A,$2E,$31
+    .byte $34,$36,$39,$3B,$3C,$3D,$3E,$3F
+    .byte $3F,$3F,$3E,$3D,$3C,$3B,$39,$36
+    .byte $34,$31,$2E,$2A,$26,$22,$1D,$19
+    .byte $14,$0E,$09,$03,$FD,$F7,$F1,$EA
+    .byte $E4,$DD,$D6,$CF,$C8,$C1,$BA,$B2
+    .byte $AB,$A4,$9C,$95,$8E,$87,$80,$79
+    .byte $72,$6C,$65,$5F,$59,$53,$4D,$48
+    .byte $42,$3D,$39,$34,$30,$2C,$28,$25
+    .byte $22,$20,$1D,$1B,$1A,$19,$18,$17
+    .byte $17,$17,$18,$19,$1A,$1B,$1D,$20
+    .byte $22,$25,$28,$2C,$30,$34,$39,$3D
+    .byte $42,$48,$4D,$53,$59,$5F,$65,$6C
+    .byte $72,$79,$80,$87,$8E,$95,$9C,$A4
 
 sinx_ub:
-    .byte 0,0,0,0,0,0,0,1
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,0,0,0,0,0,0
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
@@ -39,28 +55,40 @@ sinx_offset:
     .byte $0
 
 siny:
-    .byte $8B,$97,$A2,$AD,$B8,$C1,$CA,$D2
-    .byte $D8,$DD,$E1,$E3,$E4,$E3,$E1,$DD
-    .byte $D8,$D2,$CA,$C1,$B7,$AD,$A2,$97
-    .byte $8B,$7F,$74,$69,$5F,$55,$4C,$44
-    .byte $3E,$39,$35,$33,$32,$33,$35,$39
-    .byte $3E,$44,$4C,$55,$5E,$69,$74,$7F
-
+    .byte $8B,$91,$97,$9C,$A2,$A8,$AD,$B2
+    .byte $B8,$BC,$C1,$C6,$CA,$CE,$D2,$D5
+    .byte $D8,$DB,$DD,$DF,$E1,$E2,$E3,$E4
+    .byte $E4,$E4,$E3,$E2,$E1,$DF,$DD,$DB
+    .byte $D8,$D5,$D2,$CE,$CA,$C6,$C1,$BC
+    .byte $B7,$B2,$AD,$A8,$A2,$9C,$97,$91
+    .byte $8B,$85,$7F,$7A,$74,$6E,$69,$64
+    .byte $5F,$5A,$55,$50,$4C,$48,$44,$41
+    .byte $3E,$3B,$39,$37,$35,$34,$33,$32
+    .byte $32,$32,$33,$34,$35,$37,$39,$3B
+    .byte $3E,$41,$44,$48,$4C,$50,$55,$5A
+    .byte $5E,$64,$69,$6E,$74,$7A,$7F,$85
 
 siny_offset:
     .byte $0
-
 x_pos:
     .byte $0
 y_pos:
     .byte $0
 sprite_idx:
     .byte $0
-tmp01:
+sprite_idx_offset:
+    .byte 0,5,10,15,20,25,30,35,40
+bgcolor:
     .byte $0
+debugcolor:
+    .byte $b
+spritecolor:
+    .byte $6
+
 
 *= $0810
 start:
+    jsr clear_screen
     jsr init_sprites
 
     sei
@@ -101,25 +129,44 @@ start:
     cli
     jmp *
     
+clear_screen:
+    lda #$20
+    ldx #0
+!:   
+    sta $0400,x
+    sta $0500,x
+    sta $0600,x
+    sta $0700,x
+    dex
+    bne !-
+
+    lda bgcolor
+    sta $d020
+    sta $d021
+
+    rts
+
 init_sprites:
     lda #%11111111
     sta $d015
 
-    // set all sprite colors to white
+    // set all sprite colors
     ldx #0
-    lda #$a
+    lda spritecolor
+!:
     sta $d027, x
     inx
     cpx #8
-    bne *-6
+    bne !-
     
     // position all sprites out of view
     ldx #0
     lda #0
+!:
     sta $d000, x
     inx
     cpx #8
-    bne *-6
+    bne !-
 
     lda #50
     sta $d001    
@@ -128,10 +175,11 @@ init_sprites:
     // sprite data in $2000 (0x80 * 64)
     lda #$80
     ldx #0
+!:
     sta $07f8, x
     inx
     cpx #8
-    bne *-6
+    bne !-
     
     rts
 
@@ -141,59 +189,56 @@ move_sprites:
     sta $d019
 
     // set border color
-    lda #$01
+    lda debugcolor
     sta $d020
 
     // load and set y position
     ldx siny_offset
     inx
     // wrap around if we've overflowed the sin data
-    cpx #48
-    bne *+4
+    cpx #96
+    bne !+
     ldx #0
+!:
     stx siny_offset
 
     // load and set x position
     ldx sinx_offset
     inx
     // wrap around if we've overflowed the sin data
-    cpx #64
-    bne *+4
+    cpx #128
+    bne !+
     ldx #0
+!:
     stx sinx_offset
 
     // x now holds next x offset
 
-    // y and $cd holds sprite index
     lda #0
     sta sprite_idx
-
-//    .break
 
     // reset all sprites upper bit
     lda #0
     sta $d010
 
 sprite_loop:
-    // .break
     // x-position
-    // $cd holds sprite index
     lda sinx_offset
-    adc sprite_idx
-    adc sprite_idx
-    adc sprite_idx
-    adc sprite_idx
+    clc
+    ldx sprite_idx
+    adc sprite_idx_offset, x
+    tax
     
     // wrap around if we've overflowed the sin data
-    cmp #64
+    cmp #128
     bcc !+
-    sbc #64
+    sbc #128
 !:
 
-    cmp #64
-    bne *+4
+    cmp #128
+    bne !+
     lda #0
-
+!:
     // move sin offset index to x
     tax
 
@@ -207,39 +252,38 @@ sprite_loop:
     sta $d000, y
 
     // set high bit
+    tya
+    pha
     lda sinx_ub, x
     // acc now holds upper bit value for sprite
-    
     // shift to correct position for sprite index
-    sty tmp01
+    
     ldy sprite_idx
+!: 
     cpy #0
     beq *+7
     dey
     asl
-    jmp *-6
+    jmp !-
     ora $d010
     sta $d010
-    ldy tmp01
+    pla
+    tay
 
     // y-position
 
-    // $cd holds sprite index
     lda siny_offset
-    adc sprite_idx
-    adc sprite_idx
-    adc sprite_idx
-    adc sprite_idx
+    clc
+    ldx sprite_idx
+    adc sprite_idx_offset, x
     tax
     
     // wrap around if we've overflowed the sin data
-    cpx #47
+    cpx #96
     bcc !+
-    pha
     txa 
-    sbc #47
+    sbc #96
     tax
-    pla
 !:
     lda siny, x
     sta $d001, y
@@ -248,11 +292,11 @@ sprite_loop:
     inc sprite_idx
     lda sprite_idx
     // exit if all sprintes are handled
-    cmp #7
+    cmp #8
     bne sprite_loop
 
     // reset border color
-    lda #$0e
+    lda bgcolor
     sta $d020
 
     rti
