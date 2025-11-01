@@ -70,20 +70,26 @@ siny:
 
 siny_offset:
     .byte $0
-x_pos:
-    .byte $0
-y_pos:
-    .byte $0
 sprite_idx:
     .byte $0
 sprite_idx_offset:
     .byte 0,5,10,15,20,25,30,35,40
-bgcolor:
+color_bg:
     .byte $0
-debugcolor:
+color_timing:
     .byte $b
-spritecolor:
+color_sprite:
     .byte $6
+sprite_count:
+    .byte $10
+sprite_x:
+    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+sprite_x_ub:
+    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+sprite_y:
+    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+sprite_order:
+    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 
 
 *= $0810
@@ -109,13 +115,14 @@ start:
     lda #%00001000
     sta $d016 
 
-    lda #25
+    // update_sprite_position at end of render
+    lda #$0
     sta $d012
 
     // use hardware vectors for setting interrupt
-    lda #<move_sprites
+    lda #<render_next_8_sprites
     sta $fffe
-    lda #>move_sprites
+    lda #>render_next_8_sprites
     sta $ffff
 
     // enable raster IRQ
@@ -140,7 +147,7 @@ clear_screen:
     dex
     bne !-
 
-    lda bgcolor
+    lda color_bg
     sta $d020
     sta $d021
 
@@ -152,7 +159,7 @@ init_sprites:
 
     // set all sprite colors
     ldx #0
-    lda spritecolor
+    lda color_sprite
 !:
     sta $d027, x
     inx
@@ -183,13 +190,72 @@ init_sprites:
     
     rts
 
-move_sprites:
+render_next_8_sprites:
     // ack interrupt
     lda #$01
     sta $d019
 
+    lda sprite_x
+    cmp #0
+    beq update_sprites
+
+    // reset sprite x upper bits
+
+    ldx #0
+    stx $d010
+    
+move_sprites:
+    // multiply sprite index with 2 for correct sprite pos offset
+    txa
+    asl
+    tay
+
+    lda sprite_x, x
+    sta $d000, y
+
+    tya
+    pha
+
+    // set x pos high bit 
+    lda sprite_x_ub, x
+
+    // copy sprite index to y
+    pha
+    txa
+    tay
+    pla
+!: 
+    cpy #0
+    beq !+
+    dey
+    asl
+    jmp !-
+!:   
+    ora $d010
+    sta $d010
+
+    pla
+    tay
+
+    lda sprite_y, x
+    sta $d001, y
+
+    inx
+    cpx #8
+    bne move_sprites
+
+    // if we're done rendering, calculate new sprite positions for next raster
+update_sprites:
+    jsr update_sprite_positions
+    rti
+
+update_sprite_positions:
+    // ack interrupt
+    //lda #$01
+    //sta $d019
+
     // set border color
-    lda debugcolor
+    lda color_timing
     sta $d020
 
     // load and set y position
@@ -217,10 +283,6 @@ move_sprites:
     lda #0
     sta sprite_idx
 
-    // reset all sprites upper bit
-    lda #0
-    sta $d010
-
 sprite_loop:
     // x-position
     lda sinx_offset
@@ -243,33 +305,15 @@ sprite_loop:
     tax
 
     // multiply sprite index with 2 for correct sprite pos offset
-    lda sprite_idx
-    asl
-    tay
+    ldy sprite_idx
     
     // y holds sprites x position offset
     lda sinx, x
-    sta $d000, y
+    sta sprite_x, y
 
-    // set high bit
-    tya
-    pha
     lda sinx_ub, x
-    // acc now holds upper bit value for sprite
-    // shift to correct position for sprite index
+    sta sprite_x_ub, y
     
-    ldy sprite_idx
-!: 
-    cpy #0
-    beq *+7
-    dey
-    asl
-    jmp !-
-    ora $d010
-    sta $d010
-    pla
-    tay
-
     // y-position
 
     lda siny_offset
@@ -286,17 +330,17 @@ sprite_loop:
     tax
 !:
     lda siny, x
-    sta $d001, y
+    sta sprite_y, y
 
     // move to next sprite index
     inc sprite_idx
     lda sprite_idx
     // exit if all sprintes are handled
-    cmp #8
+    cmp sprite_count
     bne sprite_loop
 
     // reset border color
-    lda bgcolor
+    lda color_bg
     sta $d020
 
-    rti
+    rts
