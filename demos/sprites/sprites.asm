@@ -81,16 +81,15 @@ color_timing:
 color_sprite:
     .byte $6
 sprite_count:
-    .byte $10
+    .byte 16
 sprite_x:
-    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    .fill 24,0
 sprite_x_ub:
-    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    .fill 24,0
 sprite_y:
-    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+    .fill 24,0
 sprite_order:
-    .byte 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-
+    .fill 24,0
 
 *= $0810
 start:
@@ -195,15 +194,10 @@ render_next_8_sprites:
     lda #$01
     sta $d019
 
-    lda sprite_x
-    cmp #0
-    beq update_sprites
-
     // reset sprite x upper bits
-
     ldx #0
     stx $d010
-    
+
 move_sprites:
     // multiply sprite index with 2 for correct sprite pos offset
     txa
@@ -283,7 +277,7 @@ update_sprite_positions:
     lda #0
     sta sprite_idx
 
-sprite_loop:
+update_sprite_position:
     // x-position
     lda sinx_offset
     clc
@@ -294,6 +288,7 @@ sprite_loop:
     // wrap around if we've overflowed the sin data
     cmp #128
     bcc !+
+    clc
     sbc #128
 !:
 
@@ -326,21 +321,93 @@ sprite_loop:
     cpx #96
     bcc !+
     txa 
+    clc
     sbc #96
     tax
 !:
     lda siny, x
     sta sprite_y, y
 
+    lda sprite_y, y
+    tya
+    // set sprite order to index as a starting point
+    sta sprite_order, y
+
     // move to next sprite index
     inc sprite_idx
     lda sprite_idx
     // exit if all sprintes are handled
     cmp sprite_count
-    bne sprite_loop
+    bne update_sprite_position
+
+sort_sprites:
+    // now lets sort sprites by y position
+    ldx #1
+    stx sort_sprite_idx
+    // break if we've handeled all sprites
+    cpx sprite_count
+    bcs done
+    
+sort_next_sprite__outer:
+    ldy sprite_order, x
+    //sty sort_tmp_idx
+    // y is idx of sprite to sort
+    lda sprite_y, y
+    //sta sort_tmp
+    // acc is y-pos of target sprite
+    //sta sort_tmp_y
+
+    ldy sprite_order-1, x
+    cmp sprite_y, y
+
+    bcc sort_next_sprite__swap_order
+
+    dex
+    cpx #0
+    beq sort_next_sprite__continue_next_sprite
+    bcs sort_next_sprite__outer
+
+sort_next_sprite__swap_order:
+    // x == order_index
+    // y == sprite_index
+    ldy sprite_order, x
+    //sta sort_tmp
+    // sort_temp == index of sprite to move
+    lda sprite_order-1, x
+    sta sprite_order, x
+    //lda sort_tmp
+    tya
+    sta sprite_order-1, x
+    jmp sort_next_sprite__outer
+
+sort_next_sprite__continue_next_sprite:
+    inc sort_sprite_idx
+    ldx sort_sprite_idx
+
+    // break if we've handeled all sprites
+    cpx sprite_count
+    bcs done
+
+    jmp sort_next_sprite__outer
+
+done:
+    ldx #0
+!:
+    lda sprite_order, x
+    clc
+    adc #$30
+    sta $0400, x
+    inx
+    cpx sprite_count
+    bne !-
 
     // reset border color
     lda color_bg
     sta $d020
 
     rts
+
+sort_sprite_idx:
+    .byte 0
+sort_tmp:
+    .byte 0
