@@ -288,7 +288,7 @@ update_sprite_position:
     // wrap around if we've overflowed the sin data
     cmp #128
     bcc !+
-    clc
+    // should be 127, but skipping clc to save a coupld of cycles
     sbc #128
 !:
 
@@ -320,8 +320,8 @@ update_sprite_position:
     // wrap around if we've overflowed the sin data
     cpx #96
     bcc !+
-    txa 
-    clc
+    txa
+    // should be 95, but skipping clc to save a coupld of cycles
     sbc #96
     tax
 !:
