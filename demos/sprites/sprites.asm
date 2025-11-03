@@ -72,8 +72,6 @@ siny_offset:
     .byte $0
 sprite_idx:
     .byte $0
-sprite_idx_offset:
-    .byte 0,5,10,15,20,25,30,35,40
 color_bg:
     .byte $0
 color_timing:
@@ -81,15 +79,34 @@ color_timing:
 color_sprite:
     .byte $6
 sprite_count:
-    .byte 16
+    .byte 24
+sprite_idx_offset:
+    .fill 24, i*5
 sprite_x:
     .fill 24,0
 sprite_x_ub:
     .fill 24,0
 sprite_y:
     .fill 24,0
-sprite_order:
+sprite_bucket_1:
     .fill 24,0
+sprite_bucket_2:
+    .fill 24,0
+sprite_bucket_3:
+    .fill 24,0
+sprite_bucket_4:
+    .fill 24,0
+debug_value:
+    .byte 0
+
+bucket_1_y:
+    .byte 0
+bucket_2_y:
+    .byte 95
+bucket_3_y:
+    .byte 140
+bucket_4_y:
+    .byte 185
 
 *= $0810
 start:
@@ -115,7 +132,7 @@ start:
     sta $d016 
 
     // update_sprite_position at end of render
-    lda #$0
+    lda #$ff
     sta $d012
 
     // use hardware vectors for setting interrupt
@@ -235,7 +252,7 @@ move_sprites:
     pla
     tay
 
-    lda sprite_y, x
+    lda sprite_y+8, x
     sta $d001, y
 
     inx
@@ -280,8 +297,8 @@ update_sprite_positions:
 update_sprite_position:
     // x-position
     lda sinx_offset
-    clc
     ldx sprite_idx
+    clc
     adc sprite_idx_offset, x
     tax
     
@@ -312,26 +329,32 @@ update_sprite_position:
     // y-position
 
     lda siny_offset
-    clc
     ldx sprite_idx
+    clc
     adc sprite_idx_offset, x
     tax
     
     // wrap around if we've overflowed the sin data
+    txa
+    // should be 95, but skipping clc to save a coupld of cycles
+    cpx #192
+    bcc !+
+    txa
+    sbc #192
+    tax
+!:
     cpx #96
     bcc !+
     txa
-    // should be 95, but skipping clc to save a coupld of cycles
     sbc #96
     tax
 !:
+    
     lda siny, x
     sta sprite_y, y
 
     lda sprite_y, y
     tya
-    // set sprite order to index as a starting point
-    sta sprite_order, y
 
     // move to next sprite index
     inc sprite_idx
@@ -340,66 +363,48 @@ update_sprite_position:
     cmp sprite_count
     bne update_sprite_position
 
-sort_sprites:
-    // now lets sort sprites by y position
-    ldx #1
-    stx sort_sprite_idx
-    // break if we've handeled all sprites
-    cpx sprite_count
-    bcs done
-    
-sort_next_sprite__outer:
-    ldy sprite_order, x
-    //sty sort_tmp_idx
-    // y is idx of sprite to sort
-    lda sprite_y, y
-    //sta sort_tmp
-    // acc is y-pos of target sprite
-    //sta sort_tmp_y
-
-    ldy sprite_order-1, x
-    cmp sprite_y, y
-
-    bcc sort_next_sprite__swap_order
-
+bucket_sprites:
+    ldx sprite_count
+bucket_sprites__start:
     dex
+
+    // show empty slots as space
+    lda #$f0
+    sta sprite_bucket_1, x
+    sta sprite_bucket_2, x
+    sta sprite_bucket_3, x
+    sta sprite_bucket_4, x
+    
+    lda sprite_y, x
+
+    cmp bucket_2_y
+    bcs !+
+    txa
+    sta sprite_bucket_1, x
+    jmp bucket_sprites__continue_next
+!:
+    cmp bucket_3_y
+    bcs !+
+    txa
+    sta sprite_bucket_2, x
+    jmp bucket_sprites__continue_next
+!:
+    cmp bucket_4_y
+    bcs !+
+    txa
+    sta sprite_bucket_3, x
+    jmp bucket_sprites__continue_next
+!:
+    txa
+    sta sprite_bucket_4, x
+
+bucket_sprites__continue_next:
     cpx #0
-    beq sort_next_sprite__continue_next_sprite
-    bcs sort_next_sprite__outer
-
-sort_next_sprite__swap_order:
-    // x == order_index
-    // y == sprite_index
-    ldy sprite_order, x
-    //sta sort_tmp
-    // sort_temp == index of sprite to move
-    lda sprite_order-1, x
-    sta sprite_order, x
-    //lda sort_tmp
-    tya
-    sta sprite_order-1, x
-    jmp sort_next_sprite__outer
-
-sort_next_sprite__continue_next_sprite:
-    inc sort_sprite_idx
-    ldx sort_sprite_idx
-
-    // break if we've handeled all sprites
-    cpx sprite_count
-    bcs done
-
-    jmp sort_next_sprite__outer
+    beq done
+    bne bucket_sprites__start
 
 done:
-    ldx #0
-!:
-    lda sprite_order, x
-    clc
-    adc #$30
-    sta $0400, x
-    inx
-    cpx sprite_count
-    bne !-
+    jsr print_buckets
 
     // reset border color
     lda color_bg
@@ -407,7 +412,84 @@ done:
 
     rts
 
-sort_sprite_idx:
-    .byte 0
-sort_tmp:
-    .byte 0
+print_buckets:
+    ldx #0
+!:
+    lda sprite_bucket_1, x
+    clc
+    adc #$30
+    sta $0400, x
+
+    lda sprite_bucket_2, x
+    clc
+    adc #$30
+    sta $0428, x
+
+    lda sprite_bucket_3, x
+    clc
+    adc #$30
+    sta $0450, x
+
+    lda sprite_bucket_4, x
+    clc
+    adc #$30
+    sta $0478, x
+
+    inx
+    cpx sprite_count
+    bne !-
+!:
+    rts
+
+print_bucket_counts:
+    ldx #0
+
+    ldy #0
+!next_sprite:
+    lda sprite_bucket_1, x
+    cmp #0
+    beq !+
+    iny
+!:
+    inx
+    cpx sprite_count
+    bcs !next_sprite-
+
+    tya
+    clc
+    adc #40
+    sta $0400
+
+    ldy #0
+!next_sprite:
+    lda sprite_bucket_2, x
+    cmp #0
+    beq !+
+    iny
+!:
+    inx
+    cpx sprite_count
+    bcs !next_sprite-
+    
+    tya
+    clc
+    adc #40
+    sta $0428
+
+    ldy #0
+!next_sprite:
+    lda sprite_bucket_3, x
+    cmp #0
+    beq !+
+    iny
+!:
+    inx
+    cpx sprite_count
+    bcs !next_sprite-
+
+    tya
+    clc
+    adc #40
+    sta $0450
+
+    rts
