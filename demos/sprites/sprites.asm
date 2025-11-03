@@ -194,6 +194,10 @@ render_next_8_sprites:
     lda #$01
     sta $d019
 
+    // set border color
+    lda color_timing
+    sta $d020
+
     // reset sprite x upper bits
     ldx #0
     stx $d010
@@ -247,10 +251,6 @@ update_sprite_positions:
     // ack interrupt
     //lda #$01
     //sta $d019
-
-    // set border color
-    lda color_timing
-    sta $d020
 
     // load and set y position
     ldx siny_offset
