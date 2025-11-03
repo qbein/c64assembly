@@ -79,34 +79,42 @@ color_timing:
 color_sprite:
     .byte $6
 sprite_count:
-    .byte 24
+    .byte 16
 sprite_idx_offset:
-    .fill 24, i*5
+    .fill 32, i*5
 sprite_x:
     .fill 24,0
 sprite_x_ub:
     .fill 24,0
 sprite_y:
     .fill 24,0
+sprite_bucket_0:
+    .fill 32,0
 sprite_bucket_1:
-    .fill 24,0
+    .fill 32,0
 sprite_bucket_2:
-    .fill 24,0
+    .fill 32,0
 sprite_bucket_3:
-    .fill 24,0
-sprite_bucket_4:
-    .fill 24,0
+    .fill 32,0
+sprite_bucket_0_end:
+    .byte 0
+sprite_bucket_1_end:
+    .byte 0
+sprite_bucket_2_end:
+    .byte 0
+sprite_bucket_3_end:
+    .byte 0
 debug_value:
     .byte 0
 
 bucket_1_y:
     .byte 0
 bucket_2_y:
-    .byte 95
+    .byte 85
 bucket_3_y:
     .byte 140
 bucket_4_y:
-    .byte 185
+    .byte 195
 
 *= $0810
 start:
@@ -132,7 +140,7 @@ start:
     sta $d016 
 
     // update_sprite_position at end of render
-    lda #$ff
+    lda #$c0
     sta $d012
 
     // use hardware vectors for setting interrupt
@@ -173,6 +181,9 @@ init_sprites:
     lda #%11111111
     sta $d015
 
+    lda #$ff
+    sta $d01b
+
     // set all sprite colors
     ldx #0
     lda color_sprite
@@ -212,6 +223,11 @@ render_next_8_sprites:
     sta $d019
 
     // set border color
+    lda #7
+    sta $d020
+
+    jsr print_buckets
+
     lda color_timing
     sta $d020
 
@@ -252,7 +268,7 @@ move_sprites:
     pla
     tay
 
-    lda sprite_y+8, x
+    lda sprite_y, x
     sta $d001, y
 
     inx
@@ -364,39 +380,59 @@ update_sprite_position:
     bne update_sprite_position
 
 bucket_sprites:
-    ldx sprite_count
-bucket_sprites__start:
-    dex
+    // reset buckets
+    lda #0
+    sta sprite_bucket_0_end
+    sta sprite_bucket_1_end
+    sta sprite_bucket_2_end
+    sta sprite_bucket_3_end
 
-    // show empty slots as space
     lda #$f0
+    ldx #0
+!:
+    sta sprite_bucket_0, x
     sta sprite_bucket_1, x
     sta sprite_bucket_2, x
     sta sprite_bucket_3, x
-    sta sprite_bucket_4, x
+    inx
+    cpx #32
+    bne !-
+
+    ldx sprite_count
     
+bucket_sprites__start:
+    dex
+
     lda sprite_y, x
 
     cmp bucket_2_y
     bcs !+
+    ldy sprite_bucket_0_end
     txa
-    sta sprite_bucket_1, x
+    sta sprite_bucket_0, y
+    inc sprite_bucket_0_end
     jmp bucket_sprites__continue_next
 !:
     cmp bucket_3_y
     bcs !+
+    ldy sprite_bucket_1_end
     txa
-    sta sprite_bucket_2, x
+    sta sprite_bucket_1, y
+    inc sprite_bucket_1_end
     jmp bucket_sprites__continue_next
 !:
     cmp bucket_4_y
     bcs !+
+    ldy sprite_bucket_2_end
     txa
-    sta sprite_bucket_3, x
+    sta sprite_bucket_2, y
+    inc sprite_bucket_2_end
     jmp bucket_sprites__continue_next
 !:
+    ldy sprite_bucket_3_end
     txa
-    sta sprite_bucket_4, x
+    sta sprite_bucket_3, y
+    inc sprite_bucket_3_end
 
 bucket_sprites__continue_next:
     cpx #0
@@ -404,8 +440,6 @@ bucket_sprites__continue_next:
     bne bucket_sprites__start
 
 done:
-    jsr print_buckets
-
     // reset border color
     lda color_bg
     sta $d020
@@ -413,83 +447,62 @@ done:
     rts
 
 print_buckets:
+    // clear bucket output area
+    lda #$20
     ldx #0
 !:
-    lda sprite_bucket_1, x
+    sta $0400, x
+    inx
+    cpx #$ff
+    bne !-
+
+    // print buckets
+    ldx #0
+!:
+    cpx sprite_bucket_0_end
+    beq !+
+    lda sprite_bucket_0, x
     clc
     adc #$30
     sta $0400, x
+    inx
+    jmp !-
 
-    lda sprite_bucket_2, x
+!:
+    ldx #0
+!:
+    cpx sprite_bucket_1_end
+    beq !+
+    lda sprite_bucket_1, x
     clc
     adc #$30
     sta $0428, x
+    inx
+    jmp !-
 
-    lda sprite_bucket_3, x
+!:
+    ldx #0
+!: 
+    cpx sprite_bucket_2_end
+    beq !+
+    lda sprite_bucket_2, x
     clc
     adc #$30
     sta $0450, x
+    inx
+    jmp !-
 
-    lda sprite_bucket_4, x
+!:
+    ldx #0
+!:
+    cpx sprite_bucket_3_end
+    beq !+
+    lda sprite_bucket_3, x
     clc
     adc #$30
     sta $0478, x
-
     inx
-    cpx sprite_count
-    bne !-
+    jmp !-
 !:
-    rts
-
-print_bucket_counts:
-    ldx #0
-
-    ldy #0
-!next_sprite:
-    lda sprite_bucket_1, x
-    cmp #0
-    beq !+
-    iny
-!:
-    inx
-    cpx sprite_count
-    bcs !next_sprite-
-
-    tya
-    clc
-    adc #40
-    sta $0400
-
-    ldy #0
-!next_sprite:
-    lda sprite_bucket_2, x
-    cmp #0
-    beq !+
-    iny
-!:
-    inx
-    cpx sprite_count
-    bcs !next_sprite-
-    
-    tya
-    clc
-    adc #40
-    sta $0428
-
-    ldy #0
-!next_sprite:
-    lda sprite_bucket_3, x
-    cmp #0
-    beq !+
-    iny
-!:
-    inx
-    cpx sprite_count
-    bcs !next_sprite-
-
-    tya
-    clc
-    adc #40
-    sta $0450
 
     rts
