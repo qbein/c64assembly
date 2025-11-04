@@ -109,13 +109,13 @@ sprite_bucket_2_len:
 sprite_bucket_3_len:
     .byte 0
 
-bucket_1_y:
+bucket_0_y:
     .byte 0
-bucket_2_y:
+bucket_1_y:
     .byte 85
-bucket_3_y:
+bucket_2_y:
     .byte 140
-bucket_4_y:
+bucket_3_y:
     .byte 195
 
 active_bucket_cnt:
@@ -145,7 +145,7 @@ start:
     sta $d016 
 
     // update_sprite_position at end of render
-    lda #$c0
+    lda #0
     sta $d012
 
     // use hardware vectors for setting interrupt
@@ -327,6 +327,13 @@ move_sprite:
 
 move_sprites__return:
     inc active_bucket_cnt
+    lda active_bucket_cnt
+    and #%11
+    tax
+
+    // set next interrupt
+    lda bucket_0_y, x
+    sta $d012
 
     // only update sprite positions when finishing last bucket
     lda active_bucket_cnt
@@ -466,7 +473,7 @@ bucket_sprites__start:
 
     lda sprite_y, x
 
-    cmp bucket_2_y
+    cmp bucket_1_y
     bcs !+
     ldy sprite_bucket_0_len
     txa
@@ -474,7 +481,7 @@ bucket_sprites__start:
     inc sprite_bucket_0_len
     jmp bucket_sprites__continue_next
 !:
-    cmp bucket_3_y
+    cmp bucket_2_y
     bcs !+
     ldy sprite_bucket_1_len
     txa
@@ -482,7 +489,7 @@ bucket_sprites__start:
     inc sprite_bucket_1_len
     jmp bucket_sprites__continue_next
 !:
-    cmp bucket_4_y
+    cmp bucket_3_y
     bcs !+
     ldy sprite_bucket_2_len
     txa
