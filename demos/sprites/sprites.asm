@@ -83,28 +83,30 @@ sprite_count:
 sprite_idx_offset:
     .fill 32, i*5
 sprite_x:
-    .fill 24,0
+    .fill 32,0
 sprite_x_ub:
-    .fill 24,0
+    .fill 32,0
 sprite_y:
-    .fill 24,0
+    .fill 32,0
+bucket_size:
+    .byte 8
+.align $100
 sprite_bucket_0:
-    .fill 32,0
+    .fill 8,0
 sprite_bucket_1:
-    .fill 32,0
+    .fill 8,0
 sprite_bucket_2:
-    .fill 32,0
+    .fill 8,0
 sprite_bucket_3:
-    .fill 32,0
-sprite_bucket_0_end:
+    .fill 8,0
+
+sprite_bucket_0_len:
     .byte 0
-sprite_bucket_1_end:
+sprite_bucket_1_len:
     .byte 0
-sprite_bucket_2_end:
+sprite_bucket_2_len:
     .byte 0
-sprite_bucket_3_end:
-    .byte 0
-debug_value:
+sprite_bucket_3_len:
     .byte 0
 
 bucket_1_y:
@@ -115,6 +117,9 @@ bucket_3_y:
     .byte 140
 bucket_4_y:
     .byte 195
+
+active_bucket_cnt:
+    .byte 0
 
 *= $0810
 start:
@@ -144,9 +149,9 @@ start:
     sta $d012
 
     // use hardware vectors for setting interrupt
-    lda #<render_next_8_sprites
+    lda #<position_sprite_bucket
     sta $fffe
-    lda #>render_next_8_sprites
+    lda #>position_sprite_bucket
     sta $ffff
 
     // enable raster IRQ
@@ -217,7 +222,7 @@ init_sprites:
     
     rts
 
-render_next_8_sprites:
+position_sprite_bucket:
     // ack interrupt
     lda #$01
     sta $d019
@@ -235,26 +240,66 @@ render_next_8_sprites:
     ldx #0
     stx $d010
 
-move_sprites:
+    // find active bucket
+    lda active_bucket_cnt
+    and #%11
+    sta $cd
+    tay
+
+    asl
+    asl
+    asl
+    tax
+    
+    clc
+    adc sprite_bucket_0, x
+    clc
+    adc sprite_bucket_0_len, y
+
+    // abort if no sprites in bucket
+    .break
+    cmp #0
+    beq move_sprites__return
+
+    tay
+    // bucket number
+    //lda sprite_bucket_0_end, x
+    //sta $ce
+
+    // I'm working on a sprite multiplexer and have sprites grouped in 4-buckets. I have code to find the active bucket, and get the start (x-reg) and end memory () location for the sprite ids in that bucket.
+
+    // x == start offset, from sprite_bucket_0
+    stx $cc
+    // y == end offset, from sprite_bucket_0
+    sty $cd
+
+    // physical sprite index
+    lda #0
+    sta $ce
+    .break
+move_sprite:
     // multiply sprite index with 2 for correct sprite pos offset
-    txa
     asl
     tay
 
+    lda sprite_bucket_0, x
+    tax
+
+    // set y-position
+    lda sprite_y, x
+    sta $d001, y
+
+    // set x-position
     lda sprite_x, x
     sta $d000, y
+    
+    // set x-position high bit 
+    ldx $cc
+    lda sprite_bucket_0, x
+    tax
 
-    tya
-    pha
-
-    // set x pos high bit 
     lda sprite_x_ub, x
-
-    // copy sprite index to y
-    pha
-    txa
-    tay
-    pla
+    ldy $ce
 !: 
     cpy #0
     beq !+
@@ -265,18 +310,34 @@ move_sprites:
     ora $d010
     sta $d010
 
-    pla
-    tay
+    // prepare for next sprite
+    inc $cc
+    ldx $cc
+    cpx $cd
+    beq move_sprites__return
 
-    lda sprite_y, x
-    sta $d001, y
+    inc $ce
+    lda $ce
 
-    inx
-    cpx #8
-    bne move_sprites
+    // abort when all 8 sprites are positioned
+    cmp #8
+    beq move_sprites__return
+    
+    jmp move_sprite
 
-    // if we're done rendering, calculate new sprite positions for next raster
-update_sprites:
+move_sprites__return:
+    inc active_bucket_cnt
+
+    // only update sprite positions when finishing last bucket
+    lda active_bucket_cnt
+    and #%11
+    cmp #3
+    beq move_sprites__return_and_update_sprites
+    lda color_bg
+    sta $d020
+    rti
+
+move_sprites__return_and_update_sprites:
     jsr update_sprite_positions
     rti
 
@@ -382,10 +443,10 @@ update_sprite_position:
 bucket_sprites:
     // reset buckets
     lda #0
-    sta sprite_bucket_0_end
-    sta sprite_bucket_1_end
-    sta sprite_bucket_2_end
-    sta sprite_bucket_3_end
+    sta sprite_bucket_0_len
+    sta sprite_bucket_1_len
+    sta sprite_bucket_2_len
+    sta sprite_bucket_3_len
 
     lda #$f0
     ldx #0
@@ -395,7 +456,7 @@ bucket_sprites:
     sta sprite_bucket_2, x
     sta sprite_bucket_3, x
     inx
-    cpx #32
+    cpx bucket_size
     bne !-
 
     ldx sprite_count
@@ -407,32 +468,32 @@ bucket_sprites__start:
 
     cmp bucket_2_y
     bcs !+
-    ldy sprite_bucket_0_end
+    ldy sprite_bucket_0_len
     txa
     sta sprite_bucket_0, y
-    inc sprite_bucket_0_end
+    inc sprite_bucket_0_len
     jmp bucket_sprites__continue_next
 !:
     cmp bucket_3_y
     bcs !+
-    ldy sprite_bucket_1_end
+    ldy sprite_bucket_1_len
     txa
     sta sprite_bucket_1, y
-    inc sprite_bucket_1_end
+    inc sprite_bucket_1_len
     jmp bucket_sprites__continue_next
 !:
     cmp bucket_4_y
     bcs !+
-    ldy sprite_bucket_2_end
+    ldy sprite_bucket_2_len
     txa
     sta sprite_bucket_2, y
-    inc sprite_bucket_2_end
+    inc sprite_bucket_2_len
     jmp bucket_sprites__continue_next
 !:
-    ldy sprite_bucket_3_end
+    ldy sprite_bucket_3_len
     txa
     sta sprite_bucket_3, y
-    inc sprite_bucket_3_end
+    inc sprite_bucket_3_len
 
 bucket_sprites__continue_next:
     cpx #0
@@ -447,6 +508,7 @@ done:
     rts
 
 print_buckets:
+    rts // DEBUG!!
     // clear bucket output area
     lda #$20
     ldx #0
@@ -459,7 +521,7 @@ print_buckets:
     // print buckets
     ldx #0
 !:
-    cpx sprite_bucket_0_end
+    cpx sprite_bucket_0_len
     beq !+
     lda sprite_bucket_0, x
     clc
@@ -471,7 +533,7 @@ print_buckets:
 !:
     ldx #0
 !:
-    cpx sprite_bucket_1_end
+    cpx sprite_bucket_1_len
     beq !+
     lda sprite_bucket_1, x
     clc
@@ -483,7 +545,7 @@ print_buckets:
 !:
     ldx #0
 !: 
-    cpx sprite_bucket_2_end
+    cpx sprite_bucket_2_len
     beq !+
     lda sprite_bucket_2, x
     clc
@@ -495,7 +557,7 @@ print_buckets:
 !:
     ldx #0
 !:
-    cpx sprite_bucket_3_end
+    cpx sprite_bucket_3_len
     beq !+
     lda sprite_bucket_3, x
     clc
