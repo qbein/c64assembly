@@ -3,13 +3,8 @@
 
 BasicUpstart2(start)
 
-.const raster_0 = 40
-.const raster_1 = 75+21
-.const raster_2 = 130+21
-.const raster_3 = 184+21
-.const raster_4 = 255
-
-.const sort_sprite_idx = $80
+.const irq_next_idx = $80
+.const sort_sprite_idx = $81
 
 *= $2000
 sprite01:
@@ -96,38 +91,12 @@ sprite_x_ub:
     .fill 32,0
 sprite_y:
     .fill 32,0
-bucket_size:
-    .byte 8
-.align $100
-sprite_bucket_0:
-    .fill 8,0
-sprite_bucket_1:
-    .fill 8,0
-sprite_bucket_2:
-    .fill 8,0
-sprite_bucket_3:
-    .fill 8,0
 
-sprite_bucket_0_len:
-    .byte 0
-sprite_bucket_1_len:
-    .byte 0
-sprite_bucket_2_len:
-    .byte 0
-sprite_bucket_3_len:
-    .byte 0
+sprite_order:
+    .fill 32,0
 
-bucket_0_y:
-    .byte 0
-bucket_1_y:
-    .byte 85
-bucket_2_y:
-    .byte 140
-bucket_3_y:
-    .byte 195
-
-active_bucket_cnt:
-    .byte 0
+raster_lines:
+    .byte 41,75+21,130+21,184+21,210
 
 *= $0810
 start:
@@ -135,6 +104,9 @@ start:
     jsr init_sprites
 
     sei
+
+    lda #0
+    sta irq_next_idx
 
     // disable CIA interrupts:
     lda #%01111111
@@ -153,13 +125,13 @@ start:
     sta $d016 
 
     // update_sprite_position at end of render
-    lda #0
+    lda #$ff
     sta $d012
 
     // use hardware vectors for setting interrupt
-    lda #<position_sprite_bucket
+    lda #<irq_sprite_move
     sta $fffe
-    lda #>position_sprite_bucket
+    lda #>irq_sprite_move
     sta $ffff
 
     // enable raster IRQ
@@ -230,153 +202,69 @@ init_sprites:
     
     rts
 
-position_sprite_bucket:
-    // ack interrupt
+irq_sprite_move:
     lda #$01
     sta $d019
 
-    // set border color
     lda #YELLOW
     sta $d020
     sta $d021
 
-    // reset sprite x upper bits
-    ldx #0
-    stx $d010
+    // TODO: reposition sprites
 
-    // find active bucket
-    lda active_bucket_cnt
-    and #%11
-    sta $cd
-    tay
+    lda #BLUE
+    sta $d020
+    sta $d021
 
-    asl
-    asl
-    asl
-    tax
-    
-    clc
-    adc sprite_bucket_0, x
-    clc
-    adc sprite_bucket_0_len, y
-
-    // abort if no sprites in bucket
-    cmp #0
-    beq move_sprites__return
-
-    tay
-    // bucket number
-    //lda sprite_bucket_0_end, x
-    //sta $ce
-
-    // I'm working on a sprite multiplexer and have sprites grouped in 4-buckets. I have code to find the active bucket, and get the start (x-reg) and end memory () location for the sprite ids in that bucket.
-
-    // x == start offset, from sprite_bucket_0
-    stx $cc
-    // y == end offset, from sprite_bucket_0
-    sty $cd
-
-    // physical sprite index
-    lda #0
-    sta $ce
-move_sprite:
-    // multiply sprite index with 2 for correct sprite pos offset
-    asl
-    tay
-
-    lda sprite_bucket_0, x
-    tax
-
-    // set y-position
-    lda sprite_y, x
-    sta $d001, y
-
-    // set x-position
-    lda sprite_x, x
-    sta $d000, y
-    
-    // set x-position high bit 
-    ldx $cc
-    lda sprite_bucket_0, x
-    tax
-
-    lda sprite_x_ub, x
-    ldy $ce
-!: 
-    cpy #0
-    beq !+
-    dey
-    asl
-    jmp !-
-!:   
-    ora $d010
-    sta $d010
-
-    // prepare for next sprite
-    inc $cc
-    ldx $cc
-    cpx $cd
-    beq move_sprites__return
-
-    inc $ce
-    lda $ce
-
-    // abort when all 8 sprites are positioned
-    cmp #8
-    beq move_sprites__return
-    
-    jmp move_sprite
-
-move_sprites__return:
-    inc active_bucket_cnt
-    lda active_bucket_cnt
-    and #%11
-    tax
-
-    // set next interrupt
-    lda bucket_0_y, x
+    ldx irq_next_idx
+    lda raster_lines, x
     sta $d012
-
-    // only update sprite positions when finishing last bucket
-    lda active_bucket_cnt
-    and #%11
-    cmp #3
-    beq move_sprites__return_and_update_sprites
     
+    inc irq_next_idx
+    lda irq_next_idx
+    cmp #5
+    bne !+
+    lda #<irq_update_sprite_positions
+    sta $fffe
+    lda #>irq_update_sprite_positions
+    sta $ffff
+!:
+
     lda #BLACK
     sta $d020
     sta $d021
 
     rti
 
-move_sprites__return_and_update_sprites:
-    jsr update_sprite_positions
-    rti
-
-update_sprite_positions:
+irq_update_sprite_positions:
     // ack interrupt
-    //lda #$01
-    //sta $d019
+    lda #$01
+    sta $d019
+
+    lda #RED
+    sta $d020
+    sta $d021
 
     // load and set y position
+    inc siny_offset
     ldx siny_offset
-    inx
     // wrap around if we've overflowed the sin data
     cpx #96
     bne !+
     ldx #0
-!:
     stx siny_offset
+!:
 
     // load and set x position
+    inc sinx_offset
     ldx sinx_offset
     inx
     // wrap around if we've overflowed the sin data
     cpx #128
     bne !+
     ldx #0
-!:
     stx sinx_offset
+!:
 
     // x now holds next x offset
 
@@ -452,142 +340,27 @@ update_sprite_position:
     cmp sprite_count
     bne update_sprite_position
 
-bucket_sprites:
-    // reset buckets
-    lda #0
-    sta sprite_bucket_0_len
-    sta sprite_bucket_1_len
-    sta sprite_bucket_2_len
-    sta sprite_bucket_3_len
+    jmp irq_update_sprite_positions__done
 
-    lda #$f0
-    ldx #0
-!:
-    sta sprite_bucket_0, x
-    sta sprite_bucket_1, x
-    sta sprite_bucket_2, x
-    sta sprite_bucket_3, x
-    inx
-    cpx bucket_size
-    bne !-
+sort_sprites:
+    lda #GREEN
+    sta $d020
+    sta $d021
 
     ldx sprite_count
-    
-bucket_sprites__start:
+!:
+    lda #0
+    sta sprite_order, x
     dex
-
-    lda sprite_y, x
-
-    cmp bucket_1_y
-    bcs !+
-    ldy sprite_bucket_0_len
-    txa
-    sta sprite_bucket_0, y
-    inc sprite_bucket_0_len
-    jmp bucket_sprites__continue_next
-!:
-    cmp bucket_2_y
-    bcs !+
-    ldy sprite_bucket_1_len
-    txa
-    sta sprite_bucket_1, y
-    inc sprite_bucket_1_len
-    jmp bucket_sprites__continue_next
-!:
-    cmp bucket_3_y
-    bcs !+
-    ldy sprite_bucket_2_len
-    txa
-    sta sprite_bucket_2, y
-    inc sprite_bucket_2_len
-    jmp bucket_sprites__continue_next
-!:
-    ldy sprite_bucket_3_len
-    txa
-    sta sprite_bucket_3, y
-    inc sprite_bucket_3_len
-
-bucket_sprites__continue_next:
-    cpx #0
-    beq done
-    bne bucket_sprites__start
-
-done:
-    // reset border color
-    lda color_bg
-    sta $d020
-
-    rts
-
-print_buckets:
-    rts // DEBUG!!
-    // clear bucket output area
-    lda #$20
-    ldx #0
-!:
-    sta $0400, x
-    inx
     cpx #$ff
     bne !-
 
-    // print buckets
-    ldx #0
-!:
-    cpx sprite_bucket_0_len
-    beq !+
-    lda sprite_bucket_0, x
-    clc
-    adc #$30
-    sta $0400, x
-    inx
-    jmp !-
-
-!:
-    ldx #0
-!:
-    cpx sprite_bucket_1_len
-    beq !+
-    lda sprite_bucket_1, x
-    clc
-    adc #$30
-    sta $0428, x
-    inx
-    jmp !-
-
-!:
-    ldx #0
-!: 
-    cpx sprite_bucket_2_len
-    beq !+
-    lda sprite_bucket_2, x
-    clc
-    adc #$30
-    sta $0450, x
-    inx
-    jmp !-
-
-!:
-    ldx #0
-!:
-    cpx sprite_bucket_3_len
-    beq !+
-    lda sprite_bucket_3, x
-    clc
-    adc #$30
-    sta $0478, x
-    inx
-    jmp !-
-!:
-
-    rts
-
-sort_sprites:
     // now lets sort sprites by y position
     ldx #1
     stx sort_sprite_idx
     // break if we've handeled all sprites
     cpx sprite_count
-    bcs done
+    bcs irq_update_sprite_positions__done
     
 sort_sprites__next_outer:
     ldy sprite_order, x
@@ -625,11 +398,16 @@ sort_sprites__continue:
 
     // break if we've handeled all sprites
     cpx sprite_count
-    bcs sort_sprites__done
+    bcs irq_update_sprite_positions__done
 
     jmp sort_sprites__next_outer
 
-sort_sprites__done:
+irq_update_sprite_positions__done:
+    // reset border color
+    lda #LIGHT_BLUE
+    sta $d020
+    sta $d021
+
     ldx #0
 !:
     lda sprite_order, x
@@ -640,8 +418,29 @@ sort_sprites__done:
     cpx sprite_count
     bne !-
 
-    // reset border color
-    lda color_bg
-    sta $d020
+    ldx #0
+!:
+    lda sprite_y, x
+    sta $0428, x
+    inx
+    cpx sprite_count
+    bne !-
 
-    rts
+irq_update_sprite_positions__done2:
+    lda #1
+    sta irq_next_idx
+
+    lda raster_lines
+    sta $d012
+
+    lda #<irq_sprite_move
+    sta $fffe
+    lda #>irq_sprite_move
+    sta $ffff
+
+    // reset border color
+    lda #BLACK
+    sta $d020
+    sta $d021
+
+    rti
