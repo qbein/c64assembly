@@ -96,7 +96,7 @@ sprite_order:
     .fill 32,0
 
 raster_lines:
-    .byte 41,75+21,130+21,184+21,210
+    .byte 41,75+21,130+21,184+21,250
 
 *= $0810
 start:
@@ -266,81 +266,42 @@ irq_update_sprite_positions:
     stx sinx_offset
 !:
 
-    // x now holds next x offset
-
-    lda #0
-    sta sprite_idx
+    ldx #0
 
 update_sprite_position:
-    // x-position
+    // y-position
     lda sinx_offset
-    ldx sprite_idx
+
     clc
     adc sprite_idx_offset, x
-    tax
     
     // wrap around if we've overflowed the sin data
-    cmp #128
-    bcc !+
-    // should be 127, but skipping clc to save a coupld of cycles
-    sbc #128
-!:
+    and #127
+    tay
 
-    cmp #128
-    bne !+
-    lda #0
-!:
-    // move sin offset index to x
-    tax
+    lda sinx, y
+    sta sprite_x, x
 
-    // multiply sprite index with 2 for correct sprite pos offset
-    ldy sprite_idx
-    
-    // y holds sprites x position offset
-    lda sinx, x
-    sta sprite_x, y
-
-    lda sinx_ub, x
-    sta sprite_x_ub, y
+    lda sinx_ub, y
+    sta sprite_x_ub, x
     
     // y-position
-
     lda siny_offset
-    ldx sprite_idx
     clc
     adc sprite_idx_offset, x
-    tax
     
     // wrap around if we've overflowed the sin data
-    txa
-    // should be 95, but skipping clc to save a coupld of cycles
-    cpx #192
-    bcc !+
-    txa
-    sbc #192
-    tax
-!:
-    cpx #96
-    bcc !+
-    txa
-    sbc #96
-    tax
-!:
+    and #255
+    tay
     
-    lda siny, x
-    sta sprite_y, y
+    lda siny, y
+    sta sprite_y, x
 
-    lda sprite_y, y
-    tya
-
-    // move to next sprite index
-    inc sprite_idx
-    lda sprite_idx
-    // exit if all sprintes are handled
-    cmp sprite_count
+    inx
+    cpx sprite_count
     bne update_sprite_position
 
-    jmp irq_update_sprite_positions__done
+    //jmp irq_update_sprite_positions__done
 
 sort_sprites:
     lda #GREEN
@@ -401,6 +362,10 @@ sort_sprites__continue:
     bcs irq_update_sprite_positions__done
 
     jmp sort_sprites__next_outer
+
+
+
+
 
 irq_update_sprite_positions__done:
     // reset border color
