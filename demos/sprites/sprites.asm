@@ -5,6 +5,9 @@ BasicUpstart2(start)
 
 .const irq_next_idx = $80
 .const sort_sprite_idx = $81
+.const sort_temp = $82
+
+.const sprite_count = 16
 
 *= $2000
 sprite01:
@@ -81,8 +84,6 @@ color_timing:
     .byte $b
 color_sprite:
     .byte $6
-sprite_count:
-    .byte 16
 sprite_idx_offset:
     .fill 32, i*5
 sprite_x:
@@ -298,37 +299,43 @@ update_sprite_position:
     sta sprite_y, x
 
     inx
-    cpx sprite_count
+    cpx #sprite_count
     bne update_sprite_position
 
     //jmp irq_update_sprite_positions__done
+.break
+
 
 sort_sprites:
     lda #GREEN
     sta $d020
     sta $d021
 
-    ldx sprite_count
+    // initialize sprite order array
+    ldx #0 
 !:
     lda #0
     sta sprite_order, x
-    dex
-    cpx #$ff
+    inx
+    cpx #sprite_count
     bne !-
 
     // now lets sort sprites by y position
     ldx #1
     stx sort_sprite_idx
+
+sort_sprites__outer:
     // break if we've handeled all sprites
-    cpx sprite_count
-    bcs irq_update_sprite_positions__done
+    ldx sort_sprite_idx
+    cpx #sprite_count+1
+    beq sort_sprites__done
     
-sort_sprites__next_outer:
+sort_sprites__compare_x:
     ldy sprite_order, x
     //sty sort_tmp_idx
     // y is idx of sprite to sort
     lda sprite_y, y
-    //sta sort_tmp
+    //sta sort_temp
     // acc is y-pos of target sprite
     //sta sort_tmp_y
 
@@ -337,10 +344,8 @@ sort_sprites__next_outer:
 
     bcc sort_sprites__swap_order
 
-    dex
-    cpx #0
-    beq sort_sprites__continue
-    bcs sort_sprites__next_outer
+    inc sort_sprite_idx
+    jmp sort_sprites__outer
 
 sort_sprites__swap_order:
     // x == order_index
@@ -351,21 +356,10 @@ sort_sprites__swap_order:
     sta sprite_order, x
     tya
     sta sprite_order-1, x
-    jmp sort_sprites__next_outer
+    dex
+    jmp sort_sprites__compare_x
 
-sort_sprites__continue:
-    inc sort_sprite_idx
-    ldx sort_sprite_idx
-
-    // break if we've handeled all sprites
-    cpx sprite_count
-    bcs irq_update_sprite_positions__done
-
-    jmp sort_sprites__next_outer
-
-
-
-
+sort_sprites__done:
 
 irq_update_sprite_positions__done:
     // reset border color
@@ -375,12 +369,13 @@ irq_update_sprite_positions__done:
 
     ldx #0
 !:
-    lda sprite_order, x
+.break
+    lda sprite_x, x
     clc
     adc #$30
     sta $0400, x
     inx
-    cpx sprite_count
+    cpx #sprite_count
     bne !-
 
     ldx #0
@@ -388,7 +383,7 @@ irq_update_sprite_positions__done:
     lda sprite_y, x
     sta $0428, x
     inx
-    cpx sprite_count
+    cpx #sprite_count
     bne !-
 
 irq_update_sprite_positions__done2:
