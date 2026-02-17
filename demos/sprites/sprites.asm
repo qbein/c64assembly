@@ -3,9 +3,13 @@
 
 BasicUpstart2(start)
 
-.const irq_next_idx = $80
-.const sort_sprite_idx = $81
-.const sort_temp = $82
+.const addr_irq_next_idx = $80
+.const addr_sort_sprite_idx = $81
+.const addr_sort_temp = $82
+.const addr_sprite_pos_idx = $83
+
+.const color_bg = $0
+.const color_sprite = $6
 
 .const sprite_count = 16
 
@@ -78,36 +82,33 @@ siny_offset:
     .byte $0
 sprite_idx:
     .byte $0
-color_bg:
-    .byte $0
-color_timing:
-    .byte $b
-color_sprite:
-    .byte $6
 sprite_idx_offset:
     .fill 32, i*5
-sprite_x:
+sprite_pos_x:
     .fill 32,0
-sprite_x_ub:
+sprite_pos_x_ub:
     .fill 32,0
-sprite_y:
+sprite_pos_y:
     .fill 32,0
 
 sprite_order:
     .fill 32,0
 
 raster_lines:
-    .byte 41,75+21,130+21,184+21,250
+    .byte 41,75+21,130+21,184+21,230
 
 *= $0810
 start:
     jsr clear_screen
     jsr init_sprites
 
+    lda #0
+    sta addr_sprite_pos_idx
+
     sei
 
     lda #0
-    sta irq_next_idx
+    sta addr_irq_next_idx
 
     // disable CIA interrupts:
     lda #%01111111
@@ -213,23 +214,95 @@ irq_sprite_move:
 
     // TODO: reposition sprites
 
-    lda #BLUE
-    sta $d020
-    sta $d021
+    ldy addr_sprite_pos_idx
+.break
 
-    ldx irq_next_idx
-    lda raster_lines, x
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D001
+    lda sprite_pos_x, x
+    sta $D000
+
+    iny
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D003
+    lda sprite_pos_x, x
+    sta $D002
+
+    iny
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D005
+    lda sprite_pos_x, x
+    sta $D004
+
+    iny
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D007
+    lda sprite_pos_x, x
+    sta $D006
+
+    iny
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D009
+    lda sprite_pos_x, x
+    sta $D008
+
+    iny
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D00b
+    lda sprite_pos_x, x
+    sta $D00a
+
+    iny
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D00d
+    lda sprite_pos_x, x
+    sta $D00c
+
+    iny
+    ldx sprite_order, y
+    lda sprite_pos_y, x
+    sta $D00f
+
+    adc #22
     sta $d012
-    
-    inc irq_next_idx
-    lda irq_next_idx
-    cmp #5
-    bne !+
+    lda sprite_pos_x, x
+    sta $D00e
+
+    lda sprite_pos_x_ub
+    sta $D010
+
+    iny
+    sty addr_sprite_pos_idx
+
+    cpy #sprite_count
+    bcc !+
+
+    ldy #0
+    sty addr_sprite_pos_idx
+
+    lda #250
+    sta $d012
+
     lda #<irq_update_sprite_positions
     sta $fffe
     lda #>irq_update_sprite_positions
     sta $ffff
+
 !:
+
+    lda #BLUE
+    sta $d020
+    sta $d021
+
+    inc addr_irq_next_idx
+    lda addr_irq_next_idx
 
     lda #BLACK
     sta $d020
@@ -246,6 +319,7 @@ irq_update_sprite_positions:
     sta $d020
     sta $d021
 
+update_next_sprite_position:
     // load and set y position
     inc siny_offset
     ldx siny_offset
@@ -270,9 +344,8 @@ irq_update_sprite_positions:
     ldx #0
 
 update_sprite_position:
-    // y-position
+    // x-position
     lda sinx_offset
-
     clc
     adc sprite_idx_offset, x
     
@@ -281,10 +354,10 @@ update_sprite_position:
     tay
 
     lda sinx, y
-    sta sprite_x, x
+    sta sprite_pos_x, x
 
     lda sinx_ub, y
-    sta sprite_x_ub, x
+    sta sprite_pos_x_ub, x
     
     // y-position
     lda siny_offset
@@ -292,29 +365,30 @@ update_sprite_position:
     adc sprite_idx_offset, x
     
     // wrap around if we've overflowed the sin data
-    and #255
+    and #95
     tay
     
     lda siny, y
-    sta sprite_y, x
+    sta sprite_pos_y, x
 
     inx
     cpx #sprite_count
     bne update_sprite_position
 
     //jmp irq_update_sprite_positions__done
-.break
-
 
 sort_sprites:
     lda #GREEN
     sta $d020
     sta $d021
 
+    // =============================================================
+    // TODO: Fix sorting!
+
     // initialize sprite order array
     ldx #0 
 !:
-    lda #0
+    txa
     sta sprite_order, x
     inx
     cpx #sprite_count
@@ -322,40 +396,41 @@ sort_sprites:
 
     // now lets sort sprites by y position
     ldx #1
-    stx sort_sprite_idx
+    stx addr_sort_sprite_idx
 
 sort_sprites__outer:
     // break if we've handeled all sprites
-    ldx sort_sprite_idx
+    ldx addr_sort_sprite_idx
     cpx #sprite_count+1
     beq sort_sprites__done
     
 sort_sprites__compare_x:
     ldy sprite_order, x
-    //sty sort_tmp_idx
-    // y is idx of sprite to sort
-    lda sprite_y, y
-    //sta sort_temp
-    // acc is y-pos of target sprite
-    //sta sort_tmp_y
+    lda sprite_pos_y, y
 
     ldy sprite_order-1, x
-    cmp sprite_y, y
+    cmp sprite_pos_y, y
 
     bcc sort_sprites__swap_order
 
-    inc sort_sprite_idx
+    inc addr_sort_sprite_idx
     jmp sort_sprites__outer
 
 sort_sprites__swap_order:
     // x == order_index
     // y == sprite_index
-    ldy sprite_order, x
-    // sort_temp == index of sprite to move
-    lda sprite_order-1, x
-    sta sprite_order, x
-    tya
+    lda sprite_order, x
+    ldy sprite_order-1, x
+
     sta sprite_order-1, x
+    tya
+    sta sprite_order, x
+
+    // sort_temp == index of sprite to move
+    //lda sprite_order-1, x
+    //sta sprite_order, x
+    //tya
+    //sta sprite_order-1, x
     dex
     jmp sort_sprites__compare_x
 
@@ -367,20 +442,13 @@ irq_update_sprite_positions__done:
     sta $d020
     sta $d021
 
-    ldx #0
-!:
-.break
-    lda sprite_x, x
-    clc
-    adc #$30
-    sta $0400, x
-    inx
-    cpx #sprite_count
-    bne !-
+    // position done
+
+    jmp irq_update_sprite_positions__done2
 
     ldx #0
 !:
-    lda sprite_y, x
+    lda sprite_pos_y, x
     sta $0428, x
     inx
     cpx #sprite_count
@@ -388,7 +456,7 @@ irq_update_sprite_positions__done:
 
 irq_update_sprite_positions__done2:
     lda #1
-    sta irq_next_idx
+    sta addr_irq_next_idx
 
     lda raster_lines
     sta $d012
