@@ -7,6 +7,7 @@ BasicUpstart2(start)
 .const addr_sort_sprite_idx = $81
 .const addr_sort_temp = $82
 .const addr_sprite_pos_idx = $83
+.const addr_chunk_idx = $84
 
 .const color_bg = $0
 .const color_sprite = $6
@@ -42,7 +43,6 @@ sinx:
     .byte $22,$25,$28,$2C,$30,$34,$39,$3D
     .byte $42,$48,$4D,$53,$59,$5F,$65,$6C
     .byte $72,$79,$80,$87,$8E,$95,$9C,$A4
-
 sinx_ub:
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,1,1,1
@@ -65,6 +65,7 @@ sinx_offset:
     .byte $0
 
 siny:
+/*
     .byte $8B,$91,$97,$9C,$A2,$A8,$AD,$B2
     .byte $B8,$BC,$C1,$C6,$CA,$CE,$D2,$D5
     .byte $D8,$DB,$DD,$DF,$E1,$E2,$E3,$E4
@@ -77,9 +78,25 @@ siny:
     .byte $32,$32,$33,$34,$35,$37,$39,$3B
     .byte $3E,$41,$44,$48,$4C,$50,$55,$5A
     .byte $5E,$64,$69,$6E,$74,$7A,$7F,$85
-
+*/
+    .byte $8C,$90,$95,$99,$9E,$A2,$A6,$AA
+    .byte $AE,$B2,$B6,$BA,$BE,$C2,$C5,$C8
+    .byte $CC,$CF,$D2,$D4,$D7,$D9,$DB,$DD
+    .byte $DF,$E1,$E2,$E3,$E4,$E5,$E6,$E6
+    .byte $E6,$E6,$E6,$E5,$E4,$E3,$E2,$E1
+    .byte $DF,$DD,$DB,$D9,$D7,$D4,$D2,$CF
+    .byte $CC,$C8,$C5,$C2,$BE,$BA,$B6,$B2
+    .byte $AE,$AA,$A6,$A2,$9E,$99,$95,$90
+    .byte $8C,$88,$83,$7F,$7A,$76,$72,$6E
+    .byte $6A,$66,$62,$5E,$5A,$56,$53,$50
+    .byte $4C,$49,$46,$44,$41,$3F,$3D,$3B
+    .byte $39,$37,$36,$35,$34,$33,$32,$32
+    .byte $32,$32,$32,$33,$34,$35,$36,$37
+    .byte $39,$3B,$3D,$3F,$41,$44,$46,$49
+    .byte $4C,$50,$53,$56,$5A,$5E,$62,$66
+    .byte $6A,$6E,$72,$76,$7A,$7F,$83,$88
 siny_offset:
-    .byte $0
+    .byte $16
 sprite_idx:
     .byte $0
 sprite_idx_offset:
@@ -89,6 +106,9 @@ sprite_pos_x:
 sprite_pos_x_ub:
     .fill 32,0
 sprite_pos_y:
+    .fill 32,0
+
+sprite_pos_x_ub_chunk:
     .fill 32,0
 
 sprite_order:
@@ -104,11 +124,10 @@ start:
 
     lda #0
     sta addr_sprite_pos_idx
+    sta addr_irq_next_idx
+    sta addr_chunk_idx
 
     sei
-
-    lda #0
-    sta addr_irq_next_idx
 
     // disable CIA interrupts:
     lda #%01111111
@@ -212,11 +231,9 @@ irq_sprite_move:
     sta $d020
     sta $d021
 
-    // TODO: reposition sprites
-
     ldy addr_sprite_pos_idx
-.break
 
+    // $D001 and $D000++ should be indexed by x
     ldx sprite_order, y
     lda sprite_pos_y, x
     sta $D001
@@ -270,24 +287,32 @@ irq_sprite_move:
     lda sprite_pos_y, x
     sta $D00f
 
-    adc #22
+    // set next interrupt after last sprite has rendered
+    adc #17
     sta $d012
     lda sprite_pos_x, x
     sta $D00e
 
-    lda sprite_pos_x_ub
+    ldx addr_chunk_idx
+
+    lda sprite_pos_x_ub_chunk, x
     sta $D010
 
-    iny
-    sty addr_sprite_pos_idx
+    inx
+    cpx #2
+    bne !+
+    ldx #0
+!:
+    stx addr_chunk_idx
 
+    iny
     cpy #sprite_count
-    bcc !+
+    bne !+
 
     ldy #0
     sty addr_sprite_pos_idx
 
-    lda #250
+    lda #220
     sta $d012
 
     lda #<irq_update_sprite_positions
@@ -296,6 +321,8 @@ irq_sprite_move:
     sta $ffff
 
 !:
+
+    sty addr_sprite_pos_idx
 
     lda #BLUE
     sta $d020
@@ -307,6 +334,8 @@ irq_sprite_move:
     lda #BLACK
     sta $d020
     sta $d021
+
+    .break
 
     rti
 
@@ -324,7 +353,7 @@ update_next_sprite_position:
     inc siny_offset
     ldx siny_offset
     // wrap around if we've overflowed the sin data
-    cpx #96
+    cpx #127
     bne !+
     ldx #0
     stx siny_offset
@@ -345,6 +374,7 @@ update_next_sprite_position:
 
 update_sprite_position:
     // x-position
+
     lda sinx_offset
     clc
     adc sprite_idx_offset, x
@@ -365,7 +395,7 @@ update_sprite_position:
     adc sprite_idx_offset, x
     
     // wrap around if we've overflowed the sin data
-    and #95
+    and #127
     tay
     
     lda siny, y
@@ -381,9 +411,6 @@ sort_sprites:
     lda #GREEN
     sta $d020
     sta $d021
-
-    // =============================================================
-    // TODO: Fix sorting!
 
     // initialize sprite order array
     ldx #0 
@@ -435,6 +462,43 @@ sort_sprites__swap_order:
     jmp sort_sprites__compare_x
 
 sort_sprites__done:
+
+    // prepare ub byte chunks
+    lda #0
+    ldx #7
+!:
+    asl
+    ldy sprite_order, x
+    ora sprite_pos_x_ub, y
+    dex
+    bpl !-
+
+    sta sprite_pos_x_ub_chunk
+
+    // next chunk
+    lda #0
+    ldx #$f
+!:
+    asl
+    ldy sprite_order, x
+    ora sprite_pos_x_ub, y
+    dex
+    cpx #8
+    bpl !-
+
+    sta sprite_pos_x_ub_chunk+1
+/*
+    ldx #$f
+!:
+    lda sprite_pos_x_ub, x
+    asl
+    dex
+    ora sprite_pos_x_ub, x
+    cpx #8
+    bne !-
+
+    sta sprite_pos_x_ub_chunk+1
+  */  
 
 irq_update_sprite_positions__done:
     // reset border color
