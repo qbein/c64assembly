@@ -3,14 +3,12 @@
 
 BasicUpstart2(start)
 
-.const addr_irq_next_idx = $80
 .const addr_sort_sprite_idx = $81
 .const addr_sort_temp = $82
 .const addr_sprite_pos_idx = $83
 .const addr_chunk_idx = $84
 
 .const color_bg = $0
-.const color_sprite = $6
 
 .const sprite_count = 16
 
@@ -96,7 +94,7 @@ siny:
     .byte $4C,$50,$53,$56,$5A,$5E,$62,$66
     .byte $6A,$6E,$72,$76,$7A,$7F,$83,$88
 siny_offset:
-    .byte $16
+    .byte $20
 sprite_idx:
     .byte $0
 sprite_idx_offset:
@@ -124,7 +122,6 @@ start:
 
     lda #0
     sta addr_sprite_pos_idx
-    sta addr_irq_next_idx
     sta addr_chunk_idx
 
     sei
@@ -192,7 +189,7 @@ init_sprites:
 
     // set all sprite colors
     ldx #0
-    lda color_sprite
+    lda #BROWN
 !:
     sta $d027, x
     inx
@@ -279,6 +276,9 @@ irq_sprite_move:
     ldx sprite_order, y
     lda sprite_pos_y, x
     sta $D00d
+
+    sta $d012
+
     lda sprite_pos_x, x
     sta $D00c
 
@@ -287,9 +287,6 @@ irq_sprite_move:
     lda sprite_pos_y, x
     sta $D00f
 
-    // set next interrupt after last sprite has rendered
-    adc #17
-    sta $d012
     lda sprite_pos_x, x
     sta $D00e
 
@@ -323,13 +320,6 @@ irq_sprite_move:
 !:
 
     sty addr_sprite_pos_idx
-
-    lda #BLUE
-    sta $d020
-    sta $d021
-
-    inc addr_irq_next_idx
-    lda addr_irq_next_idx
 
     lda #BLACK
     sta $d020
@@ -519,10 +509,7 @@ irq_update_sprite_positions__done:
     bne !-
 
 irq_update_sprite_positions__done2:
-    lda #1
-    sta addr_irq_next_idx
-
-    lda raster_lines
+    lda #41
     sta $d012
 
     lda #<irq_sprite_move
