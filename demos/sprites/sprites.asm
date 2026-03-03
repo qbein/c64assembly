@@ -219,16 +219,23 @@ init_sprites:
     
     rts
 
+colors:
+    .byte 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4
+    .byte 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8
+
 irq_sprite_move:
     lda #$01
     sta $d019
 
-    lda #YELLOW
+    lda addr_sprite_pos_idx
+    tax
+
+    lda colors, x
     sta $d020
     sta $d021
 
-    lda addr_sprite_pos_idx
-    tax
+    txa
+    
     and #4
     asl
     tay
@@ -238,7 +245,6 @@ irq_sprite_move:
     tax
 
 .break
-    
 
     lda sprite_pos_data, x
     sta $D000, y
@@ -260,15 +266,29 @@ irq_sprite_move:
     lda sprite_pos_data+7, x
     sta $D007, y
 
-    lda #0
-    sta $D010
+
+/*
+    ldx #0
+    lda addr_sprite_pos_idx
+    cmp #$10
+
+    bcc !+
+    inx
+!:
+*/
+    //lda sprite_pos_data+sprite_count*2, x
+    //sta $d010
+
+    // lda #0
+    // sta $D010
 
     clc
     lda addr_sprite_pos_idx
     adc #4
     sta addr_sprite_pos_idx
 
-.break
+    // load correct up data for sprites
+
 
     cmp #sprite_count
     bcc !+
@@ -278,10 +298,12 @@ irq_sprite_move:
 
     //jsr update_sprite_position
 !:
-    ldx addr_sprite_pos_idx
+
+
+    tax
     ldy sprite_order, x
     lda sprite_pos_y, y
-    sbc #2 // leave 2 lines to position
+    //sbc #30 // leave a few lines of raster time to reposition sprites
 
     sta $d012
     
@@ -433,6 +455,12 @@ sort_sprites__swap_order:
     dex
     jmp sort_sprites__compare_x
 
+tmp:
+    .byte $0
+bitmask:
+    .byte $01,$02,$04,$08,$10,$20,$40,$80
+invmask:
+    .byte $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F
 sort_sprites__done:
 
     lda #CYAN
@@ -453,6 +481,33 @@ sort_sprites__done:
     lda sprite_pos_y, y
     sta sprite_pos_data+1, x
 
+/*
+// Try to fix UB!
+    lda sprite_pos_x_ub, y
+    beq !clear+
+!set:
+    lda tmp
+    ora bitmask, y
+    sta tmp
+    jmp !+
+!clear:
+    lda tmp
+    and invmask, y
+    sta tmp
+!:
+    inx
+    inx
+    inc addr_sort_temp
+
+    lda addr_sort_temp
+    and #8
+    beq !+
+
+    lda tmp
+    sta sprite_pos_data+17,  
+
+!:
+*/
     inx
     inx
     inc addr_sort_temp
@@ -466,11 +521,12 @@ sort_sprites__done:
 !:
     asl
     ldy sprite_order, x
-    ora sprite_pos_data+17, y
+    ora sprite_pos_x_ub, y
+    //ora sprite_pos_data+sprite_count*2, y
     dex
     bpl !-
 
-    sta sprite_pos_data+17
+    sta sprite_pos_data+sprite_count*2
 
     // next chunk
     lda #0
@@ -478,11 +534,11 @@ sort_sprites__done:
 !:
     asl
     ldy sprite_order, x
-    ora sprite_pos_data+18, y
+    ora sprite_pos_x_ub, y
     dex
     cpx #8
     bpl !-
 
-    sta sprite_pos_data+18
+    sta sprite_pos_data+sprite_count*2+1
 
     rts
