@@ -10,7 +10,7 @@ BasicUpstart2(start)
 
 .const color_bg = $0
 
-.const sprite_count = 16
+.const sprite_count = 14
 
 *= $2000
 sprite01:
@@ -110,8 +110,12 @@ sprite_order:
 
 .align $100
 sprite_pos_data:
-    .fill 34,0
-
+    .fill sprite_count*2,0
+.align $10
+sprite_pos_data_x_ub:
+    .fill 5,0
+ub_offset:
+    .byte 0
 *= $0810
 start:
     jsr clear_screen
@@ -142,7 +146,7 @@ start:
     sta $d016 
 
     // update_sprite_position at end of render
-    lda #$ff
+    lda #$40
     sta $d012
 
     // use hardware vectors for setting interrupt
@@ -188,12 +192,18 @@ init_sprites:
 
     // set all sprite colors
     ldx #0
-    lda #BROWN
+    lda #WHITE
 !:
     sta $d027, x
     inx
     cpx #8
     bne !-
+
+    lda #YELLOW
+    sta $d027
+    sta $d028
+    sta $d029
+    sta $d02a
     
     // position all sprites out of view
     ldx #0
@@ -227,13 +237,25 @@ irq_sprite_move:
     lda #$01
     sta $d019
 
-    lda addr_sprite_pos_idx
-    tax
+    // lda #RED
+    // sta $d020
+    // sta $d021
 
-    lda colors, x
+    // jsr update_next_sprite_position
+
+    // lda #BLACK
+    // sta $d020
+    // sta $d021
+
+
+    // rti
+
+    lda ub_offset
+    adc #1
     sta $d020
     sta $d021
 
+    lda addr_sprite_pos_idx
     txa
     
     and #4
@@ -243,8 +265,6 @@ irq_sprite_move:
     txa
     asl
     tax
-
-.break
 
     lda sprite_pos_data, x
     sta $D000, y
@@ -266,26 +286,18 @@ irq_sprite_move:
     lda sprite_pos_data+7, x
     sta $D007, y
 
+    ldx ub_offset
+.break
 
-/*
-    ldx #0
-    lda addr_sprite_pos_idx
-    cmp #$10
-
-    bcc !+
-    inx
-!:
-*/
-    //lda sprite_pos_data+sprite_count*2, x
-    //sta $d010
-
-    // lda #0
-    // sta $D010
+    lda sprite_pos_data_x_ub, x
+    sta $d010
 
     clc
     lda addr_sprite_pos_idx
     adc #4
     sta addr_sprite_pos_idx
+
+    inc ub_offset
 
     // load correct up data for sprites
 
@@ -295,15 +307,15 @@ irq_sprite_move:
     beq !+
     lda #0
     sta addr_sprite_pos_idx
+    sta ub_offset
 
-    //jsr update_sprite_position
+    jsr update_next_sprite_position
 !:
 
-
-    tax
+    ldx addr_sprite_pos_idx
     ldy sprite_order, x
     lda sprite_pos_y, y
-    //sbc #30 // leave a few lines of raster time to reposition sprites
+    sbc #8 // leave a few lines of raster time to reposition sprites
 
     sta $d012
     
@@ -515,30 +527,92 @@ sort_sprites__done:
     cmp #sprite_count
     bne !-
 
-    // prepare ub byte chunks
+    /*
+
+    move:
+    [0, 1, 2, 3]
+    
+    move:
+    [4, 5, 6, 7]
+
+    move:
+    [0, 1, 2, 3]
+
+    move:
+    [4, 5, 6, 7]
+
+
+    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
+   ---+---+---+---+---+---+---+---     
+    1 | 1 | 1 | 1 | 0 | 0 | 0 | 0      
+
+    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
+   ---+---+---+---+---+---+---+---     
+    1 | 1 | 1 | 1 | 2 | 2 | 2 | 2      
+
+    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
+   ---+---+---+---+---+---+---+---     
+    3 | 3 | 3 | 3 | 2 | 2 | 2 | 2      
+
+    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
+   ---+---+---+---+---+---+---+---     
+    3 | 3 | 3 | 3 | 0 | 0 | 0 | 0      
+
+    */
+
+    // prepare main (**) ub byte chunks:
+    //
+    // 0: fedc | 3210 *
+    // 1: 7654 | 3210 **
+    // 2: 7654 | ba98 *
+    // 3: fedc | ba98 **
+
     lda #0
-    ldx #7
+    sta sprite_pos_data_x_ub
+    sta sprite_pos_data_x_ub+1
+    sta sprite_pos_data_x_ub+2
+    sta sprite_pos_data_x_ub+3
+
+    ldx #$7
 !:
     asl
     ldy sprite_order, x
     ora sprite_pos_x_ub, y
-    //ora sprite_pos_data+sprite_count*2, y
     dex
     bpl !-
+    sta sprite_pos_data_x_ub+1
 
-    sta sprite_pos_data+sprite_count*2
-
-    // next chunk
-    lda #0
+    // next main chunk
     ldx #$f
 !:
     asl
     ldy sprite_order, x
     ora sprite_pos_x_ub, y
     dex
-    cpx #8
-    bpl !-
+    cpx #$8
+    bcs !-
+    sta sprite_pos_data_x_ub+3
 
-    sta sprite_pos_data+sprite_count*2+1
+    // build intermediate (*) chunks
+    // 0: fedc | 3210 *
+    // 1: 7654 | 3210 **
+    // 2: 7654 | ba98 *
+    // 3: fedc | ba98 **
+
+    lda sprite_pos_data_x_ub+1
+    and #%00001111
+    sta sprite_pos_data_x_ub
+    lda sprite_pos_data_x_ub+3
+    and #%11110000
+    ora sprite_pos_data_x_ub
+    sta sprite_pos_data_x_ub
+
+    lda sprite_pos_data_x_ub+1
+    and #%11110000
+    sta sprite_pos_data_x_ub+2
+    lda sprite_pos_data_x_ub+3
+    and #%00001111
+    ora sprite_pos_data_x_ub+2
+    sta sprite_pos_data_x_ub+2
 
     rts
