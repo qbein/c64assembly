@@ -10,7 +10,7 @@ BasicUpstart2(start)
 
 .const color_bg = $0
 
-.const sprite_count = 16
+.const sprite_count = 24
 
 *= $2000
 sprite01:
@@ -514,57 +514,55 @@ sort_sprites__done:
 
     // prepare main (**) ub byte chunks:
     //
-    // 0: fedc | 3210 *
+    // 0: vuts | 3210 *
     // 1: 7654 | 3210 **
     // 2: 7654 | ba98 *
     // 3: fedc | ba98 **
 
-    lda #0
-    sta sprite_pos_data_x_ub
-    sta sprite_pos_data_x_ub+1
-    sta sprite_pos_data_x_ub+2
-    sta sprite_pos_data_x_ub+3
+    // 4: fedc | jihg *
+    // 5: nmlk | jihg **
+    // 6: nmlk | rqpo *
+    // 7: vuts | rqpo **
 
-    ldx #$7
-!:
-    asl
-    ldy sprite_order, x
-    ora sprite_pos_x_ub, y
-    dex
-    bpl !-
-    sta sprite_pos_data_x_ub+1
 
-    // next main chunk
-    ldx #$f
-!:
-    asl
-    ldy sprite_order, x
-    ora sprite_pos_x_ub, y
-    dex
-    cpx #$8
-    bcs !-
-    sta sprite_pos_data_x_ub+3
+    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+1, $7)
+    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+3, $f)
+    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+5, $17)
+    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+7, $1f)
 
-    // build intermediate (*) chunks
-    // 0: fedc | 3210 *
-    // 1: 7654 | 3210 **
-    // 2: 7654 | ba98 *
-    // 3: fedc | ba98 **
-
-    lda sprite_pos_data_x_ub+1
-    and #%00001111
-    sta sprite_pos_data_x_ub
-    lda sprite_pos_data_x_ub+3
-    and #%11110000
-    ora sprite_pos_data_x_ub
-    sta sprite_pos_data_x_ub
-
-    lda sprite_pos_data_x_ub+1
-    and #%11110000
-    sta sprite_pos_data_x_ub+2
-    lda sprite_pos_data_x_ub+3
-    and #%00001111
-    ora sprite_pos_data_x_ub+2
-    sta sprite_pos_data_x_ub+2
+    PackQuadSpriteXMsb(sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+1, sprite_pos_data_x_ub)
+    PackQuadSpriteXMsb(sprite_pos_data_x_ub+1, sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+2)    
+    PackQuadSpriteXMsb(sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+4)
+    PackQuadSpriteXMsb(sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+6)
 
     rts
+
+.macro CreateQiadSpriteXMsb(dstAddr, chunkIdx) {
+    lda #0
+    sta dstAddr
+
+    ldx #chunkIdx+1
+!loop:
+    dex
+    ldy sprite_order, x
+    ora sprite_pos_x_ub, y
+    cpx #chunkIdx-7
+    beq !done+
+    asl
+    jmp !loop-
+!done:
+    sta dstAddr
+}
+
+.macro PackQuadSpriteXMsb (upperSrcAddr, lowerSrcAddr, dstAddr) {
+    lda #0
+    sta dstAddr
+
+    lda upperSrcAddr
+    and #%11110000
+    sta dstAddr
+    lda lowerSrcAddr
+    and #%00001111
+    ora dstAddr
+    sta dstAddr
+}
