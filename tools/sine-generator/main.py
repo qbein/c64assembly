@@ -3,6 +3,7 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def generate_wave(start_angle, end_angle, count, offset, amplitude, degrees=True):
     """Generate one sine wave of a given sample count."""
     table = []
@@ -29,25 +30,25 @@ def combine_waves_cyclic(waves, out_count):
     return result
 
 
-def format_table(table, label:str, values_per_line=8):
+def format_table(table, label: str, values_per_line=8):
     """Format a numeric table for assembler or plain output."""
     fmt_value = lambda v: f"${int(round(v)) & 0xFF:02X}"
-    
+
     lines = [f"{label}:"]
     for i in range(0, len(table), values_per_line):
-        chunk = table[i:i + values_per_line]
+        chunk = table[i : i + values_per_line]
         line = "    .byte " + ",".join(fmt_value(v) for v in chunk)
         lines.append(line)
 
-    if not any(x > 0xff for x in table):
+    if not any(x > 0xFF for x in table):
         return "\n".join(lines)
-    
+
     lines.append("")
     lines.append(f"{label}_ub:")
 
     for i in range(0, len(table), values_per_line):
-        chunk = table[i:i + values_per_line]
-        line = "    .byte " + ",".join("1" if x > 0xff else "0" for x in chunk)
+        chunk = table[i : i + values_per_line]
+        line = "    .byte " + ",".join("1" if x > 0xFF else "0" for x in chunk)
         lines.append(line)
 
     return "\n".join(lines)
@@ -59,13 +60,13 @@ def visualize(waves, combined=None):
 
     # Plot individual waves as smooth lines
     for i, w in enumerate(waves):
-        x = np.linspace(0, len(w)-1, 500)
+        x = np.linspace(0, len(w) - 1, 500)
         y = np.interp(x, range(len(w)), w)
-        plt.plot(x, y, label=f"Wave {i+1} ({len(w)} samples)", alpha=0.6)
-    
+        plt.plot(x, y, label=f"Wave {i + 1} ({len(w)} samples)", alpha=0.6)
+
     # Plot combined wave
     if not combined is None:
-        x_comb = np.linspace(0, len(combined)-1, 500)
+        x_comb = np.linspace(0, len(combined) - 1, 500)
         y_comb = np.interp(x_comb, range(len(combined)), combined)
         plt.plot(x_comb, y_comb, label="Combined", color="red", linewidth=2)
 
@@ -79,14 +80,42 @@ def visualize(waves, combined=None):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate sine tables for C64 demo effects.")
-    parser.add_argument("--wave", action="append", required=True,
-                        help="Define a wave as start,end,amplitude,offset[,length]. Can be repeated.")
-    parser.add_argument("--count", type=int, default=64, help="Number of samples in the combined output (default: 64).")
-    parser.add_argument("--degrees", action="store_true", help="Interpret angles as degrees (default).")
-    parser.add_argument("--radians", action="store_true", help="Interpret angles as radians.")
-    parser.add_argument("--values-per-line", type=int, default=8, help="Values per .byte line (default: 8).")
-    parser.add_argument("--plot", action="store_true", help="Display a matplotlib visualization of the sine table.")
+    parser = argparse.ArgumentParser(
+        description="Generate sine tables for C64 demo effects."
+    )
+    parser.add_argument(
+        "--wave",
+        action="append",
+        required=True,
+        help="Define a wave as start,end,amplitude,offset[,length]. Can be repeated.",
+    )
+    parser.add_argument(
+        "--count",
+        type=int,
+        default=64,
+        help="Number of samples in the combined output (default: 64).",
+    )
+    parser.add_argument(
+        "--degrees", action="store_true", help="Interpret angles as degrees (default)."
+    )
+    parser.add_argument(
+        "--radians", action="store_true", help="Interpret angles as radians."
+    )
+    parser.add_argument(
+        "--values-per-line",
+        type=int,
+        default=8,
+        help="Values per .byte line (default: 8).",
+    )
+    parser.add_argument(
+        "--combine", action="store_true", help="Combine output as one sine."
+    )
+    parser.add_argument(
+        "--plot",
+        action="store_true",
+        help="Display a matplotlib visualization of the sine table.",
+    )
+    parser.add_argument("--suffix", type=str, default="x", help="Sin variable suffix")
 
     args = parser.parse_args()
     degrees = not args.radians
@@ -96,27 +125,41 @@ def main():
     for idx, wdef in enumerate(args.wave):
         parts = wdef.split(",")
         if len(parts) < 4:
-            parser.error(f"Invalid wave definition: {wdef}. Use start,end,amplitude,offset[,length]")
+            parser.error(
+                f"Invalid wave definition: {wdef}. Use start,end,amplitude,offset[,length]"
+            )
         start, end, amp, offs = map(float, parts[:4])
         length = int(parts[4]) if len(parts) >= 5 else args.count
         wave = generate_wave(start, end, length, amp, offs, degrees)
         waves.append(wave)
 
-        # Output each individual wave table
-        print(format_table(
-            wave,
-            label=f"sin{idx+1}",
-            values_per_line=args.values_per_line
-        ))
+        if len(waves) > 1:
+            # Combine all waves additively
+            combined = combine_waves_cyclic(waves, args.count)
+
+        if len(args.wave) == 1 or not args.combine:
+            # Output each individual wave table
+            print(
+                format_table(
+                    wave, label=f"sin{idx + 1}", values_per_line=args.values_per_line
+                )
+            )
         print()
 
-    if len(waves) > 1:
-        # Combine all waves additively
-        combined = combine_waves_cyclic(waves, args.count)
+    if len(args.wave) > 1 and args.combine:
+        # Output each individual wave table
+        print(
+            format_table(
+                combined,
+                label=f"sin{args.suffix}",
+                values_per_line=args.values_per_line,
+            )
+        )
+        print()
 
     # Optional plot
     if args.plot:
-        if not 'combined' in vars():
+        if "combined" not in vars():
             visualize(waves)
         else:
             visualize(waves, combined)
