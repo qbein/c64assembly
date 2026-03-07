@@ -246,7 +246,6 @@ reset_sprite_order:
     inx
     cpx #sprite_count
     bne !-
-.break
     
     rts
 
@@ -304,7 +303,6 @@ irq_sprite_move:
     sta $D007, y
 
     ldx ub_offset
-.break
 
     lda sprite_pos_data_x_ub, x
     sta $d010
@@ -316,23 +314,29 @@ irq_sprite_move:
 
     inc ub_offset
 
-    // load correct up data for sprites
-
-
     cmp #sprite_count
     bcc !+
-    //beq !+
     lda #0
     sta addr_sprite_pos_idx
     sta ub_offset
 
-    jsr update_next_sprite_position
+    // TODO: WHY DOES THIS NOT WORK AS IRQ?
+    lda $D007, y
+    adc #22
+    sta $d012
+
+    lda #<irq_update_sprite_positions
+    sta $fffe
+    lda #>irq_update_sprite_positions
+    sta $ffff
+    jmp !++
+//    jsr update_next_sprite_position
 !:
 
     ldx addr_sprite_pos_idx
     ldy sprite_order, x
     lda sprite_pos_y, y
-    sbc #8 // leave a few lines of raster time to reposition sprites
+    sbc #5 // leave a few lines of raster time to reposition sprites
 
     sta $d012
     
@@ -366,9 +370,14 @@ irq_update_sprite_positions:
     jsr update_next_sprite_position
 
     irq_update_sprite_positions__done:
-    lda #41
-    sta $d012
+    
+    ldx addr_sprite_pos_idx
+    ldy sprite_order, x
+    lda sprite_pos_y, y
+    sbc #5 // leave a few lines of raster time to reposition sprites
 
+    sta $d012
+    
     lda #<irq_sprite_move
     sta $fffe
     lda #>irq_sprite_move
@@ -481,8 +490,6 @@ sort_sprites__swap_order:
     jmp sort_sprites__compare_x
 
 sort_sprites__done:
-.break
-
     lda #CYAN
     sta $D020
     sta $D021
