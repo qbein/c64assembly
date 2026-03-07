@@ -8,9 +8,17 @@ BasicUpstart2(start)
 .const addr_sprite_pos_idx = $83
 .const addr_chunk_idx = $84
 
-.const color_bg = $0
-
 .const sprite_count = 24
+ 
+.const DEBUG = false
+
+.macro DebugBg(color) {
+    .if (DEBUG) {
+        lda #color
+        sta $d020
+        sta $d021
+    }
+}
 
 *= $2000
 sprite01:
@@ -24,31 +32,65 @@ sprite01:
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
 *= $C000
+
 sinx:
-    .byte $AB,$B2,$BA,$C1,$C8,$CF,$D6,$DD
-    .byte $E4,$EA,$F1,$F7,$FD,$03,$09,$0E
-    .byte $14,$19,$1D,$22,$26,$2A,$2E,$31
-    .byte $34,$36,$39,$3B,$3C,$3D,$3E,$3F
-    .byte $3F,$3F,$3E,$3D,$3C,$3B,$39,$36
-    .byte $34,$31,$2E,$2A,$26,$22,$1D,$19
-    .byte $14,$0E,$09,$03,$FD,$F7,$F1,$EA
-    .byte $E4,$DD,$D6,$CF,$C8,$C1,$BA,$B2
-    .byte $AB,$A4,$9C,$95,$8E,$87,$80,$79
-    .byte $72,$6C,$65,$5F,$59,$53,$4D,$48
-    .byte $42,$3D,$39,$34,$30,$2C,$28,$25
-    .byte $22,$20,$1D,$1B,$1A,$19,$18,$17
-    .byte $17,$17,$18,$19,$1A,$1B,$1D,$20
-    .byte $22,$25,$28,$2C,$30,$34,$39,$3D
-    .byte $42,$48,$4D,$53,$59,$5F,$65,$6C
-    .byte $72,$79,$80,$87,$8E,$95,$9C,$A4
+    .byte $AB,$B4,$BD,$C6,$CF,$D8,$E0,$E8
+    .byte $F1,$F8,$00,$07,$0E,$14,$1A,$1F
+    .byte $24,$29,$2D,$31,$34,$36,$38,$3A
+    .byte $3B,$3B,$3B,$3B,$3A,$38,$36,$34
+    .byte $31,$2E,$2B,$27,$23,$1E,$1A,$15
+    .byte $10,$0B,$05,$00,$FA,$F5,$F0,$EA
+    .byte $E5,$E0,$DB,$D6,$D2,$CD,$C9,$C6
+    .byte $C2,$BF,$BD,$BA,$B8,$B7,$B6,$B5
+    .byte $B5,$B5,$B6,$B7,$B8,$BA,$BD,$BF
+    .byte $C2,$C6,$C9,$CD,$D2,$D6,$DB,$E0
+    .byte $E5,$EA,$F0,$F5,$FA,$00,$05,$0B
+    .byte $10,$15,$1A,$1E,$23,$27,$2B,$2E
+    .byte $31,$34,$36,$38,$3A,$3B,$3B,$3B
+    .byte $3B,$3A,$38,$36,$34,$31,$2D,$29
+    .byte $24,$1F,$1A,$14,$0E,$07,$00,$F8
+    .byte $F1,$E8,$E0,$D8,$CF,$C6,$BD,$B4
+    .byte $AB,$A2,$99,$90,$87,$7E,$76,$6E
+    .byte $65,$5E,$56,$4F,$48,$42,$3C,$37
+    .byte $32,$2D,$29,$25,$22,$20,$1E,$1C
+    .byte $1B,$1B,$1B,$1B,$1C,$1E,$20,$22
+    .byte $25,$28,$2B,$2F,$33,$38,$3C,$41
+    .byte $46,$4B,$51,$56,$5C,$61,$66,$6C
+    .byte $71,$76,$7B,$80,$84,$89,$8D,$90
+    .byte $94,$97,$99,$9C,$9E,$9F,$A0,$A1
+    .byte $A1,$A1,$A0,$9F,$9E,$9C,$99,$97
+    .byte $94,$90,$8D,$89,$84,$80,$7B,$76
+    .byte $71,$6C,$66,$61,$5C,$56,$51,$4B
+    .byte $46,$41,$3C,$38,$33,$2F,$2B,$28
+    .byte $25,$22,$20,$1E,$1C,$1B,$1B,$1B
+    .byte $1B,$1C,$1E,$20,$22,$25,$29,$2D
+    .byte $32,$37,$3C,$42,$48,$4F,$56,$5E
+    .byte $65,$6E,$76,$7E,$87,$90,$99,$A2
+
 sinx_ub:
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,1,1,1,1,1,1
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,0,0,0,0
+    .byte 1,1,1,1,1,1,1,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
@@ -63,20 +105,6 @@ sinx_offset:
     .byte $0
 
 siny:
-/*
-    .byte $8B,$91,$97,$9C,$A2,$A8,$AD,$B2
-    .byte $B8,$BC,$C1,$C6,$CA,$CE,$D2,$D5
-    .byte $D8,$DB,$DD,$DF,$E1,$E2,$E3,$E4
-    .byte $E4,$E4,$E3,$E2,$E1,$DF,$DD,$DB
-    .byte $D8,$D5,$D2,$CE,$CA,$C6,$C1,$BC
-    .byte $B7,$B2,$AD,$A8,$A2,$9C,$97,$91
-    .byte $8B,$85,$7F,$7A,$74,$6E,$69,$64
-    .byte $5F,$5A,$55,$50,$4C,$48,$44,$41
-    .byte $3E,$3B,$39,$37,$35,$34,$33,$32
-    .byte $32,$32,$33,$34,$35,$37,$39,$3B
-    .byte $3E,$41,$44,$48,$4C,$50,$55,$5A
-    .byte $5E,$64,$69,$6E,$74,$7A,$7F,$85
-*/
     .byte $8C,$90,$95,$99,$9E,$A2,$A6,$AA
     .byte $AE,$B2,$B6,$BA,$BE,$C2,$C5,$C8
     .byte $CC,$CF,$D2,$D4,$D7,$D9,$DB,$DD
@@ -115,7 +143,7 @@ sprite_pos_data:
     .fill sprite_count*2,0
 .align $10
 sprite_pos_data_x_ub:
-    .fill 10,0
+    .fill 12,0
 ub_offset:
     .byte 0
 *= $0810
@@ -179,8 +207,9 @@ clear_screen:
     dex
     bne !-
 
-    lda color_bg
+    lda #BLUE
     sta $d020
+    lda #BLACK
     sta $d021
 
     rts
@@ -253,23 +282,7 @@ irq_sprite_move:
     lda #$01
     sta $d019
 
-    // lda #RED
-    // sta $d020
-    // sta $d021
-
-    // jsr update_next_sprite_position
-
-    // lda #BLACK
-    // sta $d020
-    // sta $d021
-
-
-    // rti
-
-    lda ub_offset
-    adc #1
-    sta $d020
-    sta $d021
+    DebugBg(WHITE)
 
     lda addr_sprite_pos_idx
     txa
@@ -320,7 +333,6 @@ irq_sprite_move:
     sta addr_sprite_pos_idx
     sta ub_offset
 
-    // TODO: WHY DOES THIS NOT WORK AS IRQ?
     lda $D007, y
     adc #22
     sta $d012
@@ -330,7 +342,6 @@ irq_sprite_move:
     lda #>irq_update_sprite_positions
     sta $ffff
     jmp !++
-//    jsr update_next_sprite_position
 !:
 
     ldx addr_sprite_pos_idx
@@ -339,22 +350,8 @@ irq_sprite_move:
     sbc #5 // leave a few lines of raster time to reposition sprites
 
     sta $d012
-    
-    
-
-    /*lda #200
-    sta $d012
-
-    lda #<irq_update_sprite_positions
-    sta $fffe
-    lda #>irq_update_sprite_positions
-    sta $ffff
-    */
-
 !:
-    lda #BLACK
-    sta $d020
-    sta $d021
+    DebugBg(0)
 
     rti
 
@@ -363,9 +360,7 @@ irq_update_sprite_positions:
     lda #$01
     sta $d019
 
-    lda #RED
-    sta $d020
-    sta $d021
+    DebugBg(RED)
 
     jsr update_next_sprite_position
 
@@ -384,15 +379,23 @@ irq_update_sprite_positions:
     sta $ffff
 
     // reset border color
-    lda #BLACK
-    sta $d020
-    sta $d021
-
+    DebugBg(BLACK)
+    
     rti
 
+render_idx:
+    .byte 0
+
 update_next_sprite_position:
+    inc render_idx
+    lda render_idx
+    and 1
+    bne !+
     // load and set y position
     inc siny_offset
+    lda #0
+    sta render_idx
+!:
     ldx siny_offset
     // wrap around if we've overflowed the sin data
     cpx #127
@@ -403,10 +406,9 @@ update_next_sprite_position:
 
     // load and set x position
     inc sinx_offset
-    ldx sinx_offset
     inx
     // wrap around if we've overflowed the sin data
-    cpx #128
+    cpx #256
     bne !+
     ldx #0
     stx sinx_offset
@@ -422,7 +424,7 @@ update_sprite_position:
     adc sprite_idx_offset, x
     
     // wrap around if we've overflowed the sin data
-    and #127
+    and #255
     tay
 
     lda sinx, y
@@ -448,9 +450,7 @@ update_sprite_position:
     bne update_sprite_position
 
 sort_sprites:
-    lda #GREEN
-    sta $d020
-    sta $d021
+    DebugBg(GREEN)
 
     // now lets sort sprites by y position
     ldx #1
@@ -487,11 +487,9 @@ sort_sprites__swap_order:
     jmp sort_sprites__compare_x
 
 sort_sprites__done:
-    lda #CYAN
-    sta $D020
-    sta $D021
+    DebugBg(CYAN)
 
-    // prepare sprite position data
+prepare_sprite_position_data:
     lda #0
     sta addr_sort_temp
     ldx #0
@@ -512,41 +510,33 @@ sort_sprites__done:
     cmp #sprite_count
     bne !-
 
-    // prepare main (**) ub byte chunks:
-    //
-    // 0: vuts | 3210 *
-    // 1: 7654 | 3210 **
-    // 2: 7654 | ba98 *
-    // 3: fedc | ba98 **
+prepare_sprite_x_msb_position_data:
+    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+1, $7)
+    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+3, $f)
+    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+5, $17)
+    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+7, $1f)
+    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+9, $27)
+    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+11, $2f)
 
-    // 4: fedc | jihg *
-    // 5: nmlk | jihg **
-    // 6: nmlk | rqpo *
-    // 7: vuts | rqpo **
-
-
-    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+1, $7)
-    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+3, $f)
-    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+5, $17)
-    CreateQiadSpriteXMsb(sprite_pos_data_x_ub+7, $1f)
-
-    PackQuadSpriteXMsb(sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+1, sprite_pos_data_x_ub)
-    PackQuadSpriteXMsb(sprite_pos_data_x_ub+1, sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+2)    
-    PackQuadSpriteXMsb(sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+4)
-    PackQuadSpriteXMsb(sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+6)
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+11, sprite_pos_data_x_ub+1, sprite_pos_data_x_ub)
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+1, sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+2)    
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+4)
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+6)
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+9, sprite_pos_data_x_ub+8)
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+9, sprite_pos_data_x_ub+11, sprite_pos_data_x_ub+10)
 
     rts
 
-.macro CreateQiadSpriteXMsb(dstAddr, chunkIdx) {
+.macro BuildSpriteXMsbChunk(dstAddr, lastSpriteIdx) {
     lda #0
     sta dstAddr
 
-    ldx #chunkIdx+1
+    ldx #lastSpriteIdx+1
 !loop:
     dex
     ldy sprite_order, x
     ora sprite_pos_x_ub, y
-    cpx #chunkIdx-7
+    cpx #lastSpriteIdx-7
     beq !done+
     asl
     jmp !loop-
@@ -554,7 +544,7 @@ sort_sprites__done:
     sta dstAddr
 }
 
-.macro PackQuadSpriteXMsb (upperSrcAddr, lowerSrcAddr, dstAddr) {
+.macro PackSpriteXMsbNibbles(upperSrcAddr, lowerSrcAddr, dstAddr) {
     lda #0
     sta dstAddr
 
