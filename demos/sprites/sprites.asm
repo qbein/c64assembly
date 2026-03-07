@@ -10,7 +10,7 @@ BasicUpstart2(start)
 
 .const color_bg = $0
 
-.const sprite_count = 14
+.const sprite_count = 16
 
 *= $2000
 sprite01:
@@ -105,6 +105,8 @@ sprite_pos_x_ub:
     .fill 16,0
 sprite_pos_y:
     .fill 16,0
+
+.align $20
 sprite_order:
     .fill 16,0
 
@@ -226,12 +228,27 @@ init_sprites:
     inx
     cpx #8
     bne !-
-    
+
+    jsr reset_sprite_order
+
     rts
 
 colors:
     .byte 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4
     .byte 5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8
+
+reset_sprite_order:
+    // initialize sprite order array
+    ldx #0 
+!:
+    txa
+    sta sprite_order, x
+    inx
+    cpx #sprite_count
+    bne !-
+.break
+    
+    rts
 
 irq_sprite_move:
     lda #$01
@@ -304,7 +321,7 @@ irq_sprite_move:
 
     cmp #sprite_count
     bcc !+
-    beq !+
+    //beq !+
     lda #0
     sta addr_sprite_pos_idx
     sta ub_offset
@@ -426,14 +443,8 @@ sort_sprites:
     sta $d020
     sta $d021
 
-    // initialize sprite order array
-    ldx #0 
-!:
-    txa
-    sta sprite_order, x
-    inx
-    cpx #sprite_count
-    bne !-
+    // TODO: why does it work when we reset sprite order
+    //jsr reset_sprite_order
 
     // now lets sort sprites by y position
     ldx #1
@@ -465,15 +476,12 @@ sort_sprites__swap_order:
     tya
     sta sprite_order, x
     dex
+    cpx #0
+    beq sort_sprites__outer
     jmp sort_sprites__compare_x
 
-tmp:
-    .byte $0
-bitmask:
-    .byte $01,$02,$04,$08,$10,$20,$40,$80
-invmask:
-    .byte $FE,$FD,$FB,$F7,$EF,$DF,$BF,$7F
 sort_sprites__done:
+.break
 
     lda #CYAN
     sta $D020
@@ -493,72 +501,12 @@ sort_sprites__done:
     lda sprite_pos_y, y
     sta sprite_pos_data+1, x
 
-/*
-// Try to fix UB!
-    lda sprite_pos_x_ub, y
-    beq !clear+
-!set:
-    lda tmp
-    ora bitmask, y
-    sta tmp
-    jmp !+
-!clear:
-    lda tmp
-    and invmask, y
-    sta tmp
-!:
-    inx
-    inx
-    inc addr_sort_temp
-
-    lda addr_sort_temp
-    and #8
-    beq !+
-
-    lda tmp
-    sta sprite_pos_data+17,  
-
-!:
-*/
     inx
     inx
     inc addr_sort_temp
     lda addr_sort_temp
     cmp #sprite_count
     bne !-
-
-    /*
-
-    move:
-    [0, 1, 2, 3]
-    
-    move:
-    [4, 5, 6, 7]
-
-    move:
-    [0, 1, 2, 3]
-
-    move:
-    [4, 5, 6, 7]
-
-
-    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
-   ---+---+---+---+---+---+---+---     
-    1 | 1 | 1 | 1 | 0 | 0 | 0 | 0      
-
-    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
-   ---+---+---+---+---+---+---+---     
-    1 | 1 | 1 | 1 | 2 | 2 | 2 | 2      
-
-    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
-   ---+---+---+---+---+---+---+---     
-    3 | 3 | 3 | 3 | 2 | 2 | 2 | 2      
-
-    7 | 6 | 5 | 4 | 3 | 2 | 1 | 0      
-   ---+---+---+---+---+---+---+---     
-    3 | 3 | 3 | 3 | 0 | 0 | 0 | 0      
-
-    */
 
     // prepare main (**) ub byte chunks:
     //
