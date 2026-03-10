@@ -133,11 +133,10 @@ def main():
         wave = generate_wave(start, end, length, amp, offs, degrees)
         waves.append(wave)
 
-        if len(waves) > 1:
-            # Combine all waves additively
-            combined = combine_waves_cyclic(waves, args.count)
+        # Combine all waves additively
+        combined = combine_waves_cyclic(waves, args.count)
 
-        if len(args.wave) == 1 or not args.combine:
+        if len(args.wave) > 1 and not args.combine:
             # Output each individual wave table
             print(
                 format_table(
@@ -146,7 +145,7 @@ def main():
             )
         print()
 
-    if len(args.wave) > 1 and args.combine:
+    if len(args.wave) == 1 or args.combine:
         # Output each individual wave table
         print(
             format_table(
