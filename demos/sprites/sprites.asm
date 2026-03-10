@@ -21,6 +21,29 @@ BasicUpstart2(start)
 }
 
 *= $2000
+sprite_circle:
+    .byte $03, $AA, $C0
+	.byte $06, $AA, $90
+	.byte $0A, $AA, $A0
+	.byte $1A, $AA, $A4
+	.byte $2A, $AA, $A8
+	.byte $EA, $AA, $AB
+	.byte $6A, $AA, $A9
+	.byte $6A, $AA, $A9
+	.byte $AA, $AA, $AA
+	.byte $AA, $AA, $AA
+	.byte $AA, $AA, $AA
+	.byte $AA, $AA, $AA
+	.byte $AA, $AA, $AA
+	.byte $6A, $AA, $A9
+	.byte $6A, $AA, $A9
+	.byte $EA, $AA, $AB
+	.byte $2A, $AA, $A8
+	.byte $1A, $AA, $A4
+	.byte $0A, $AA, $A0
+	.byte $06, $AA, $90
+	.byte $03, $AA, $C0
+
 sprite01:
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
@@ -30,6 +53,7 @@ sprite01:
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
+
 
 *= $C000
 
@@ -122,7 +146,7 @@ siny:
     .byte $4C,$50,$53,$56,$5A,$5E,$62,$66
     .byte $6A,$6E,$72,$76,$7A,$7F,$83,$88
 siny_offset:
-    .byte $20
+    .byte $0
 sprite_idx:
     .byte $0
 sprite_idx_offset:
@@ -209,7 +233,7 @@ clear_screen:
 
     lda #BLUE
     sta $d020
-    lda #BLACK
+    lda #BLUE
     sta $d021
 
     rts
@@ -221,21 +245,6 @@ init_sprites:
     lda #$ff
     sta $d01b
 
-    // set all sprite colors
-    ldx #0
-    lda #WHITE
-!:
-    sta $d027, x
-    inx
-    cpx #8
-    bne !-
-
-    lda #YELLOW
-    sta $d027
-    sta $d028
-    sta $d029
-    sta $d02a
-    
     // position all sprites out of view
     ldx #0
     lda #0
@@ -257,6 +266,34 @@ init_sprites:
     inx
     cpx #8
     bne !-
+
+    lda #$ff
+    sta $d01c
+
+    // set sprite colors
+    ldx #0
+    lda #CYAN
+!:
+    sta $d027, x
+    inx
+    cpx #8
+    bne !-
+
+.if (DEBUG) {
+    lda #WHITE  
+    sta $d027
+    sta $d028
+    sta $d029
+    sta $d02a
+}
+
+    // set multi color 1
+    lda #GREEN
+    sta $d025
+
+    // set multi color 2
+    lda #BROWN
+    sta $d026
 
     jsr reset_sprite_order
 
@@ -383,37 +420,30 @@ irq_update_sprite_positions:
     
     rti
 
+increment:
+    .byte $02,$02,$03,$03,$03,$03,$03,$02
+    .byte $02,$02,$01,$01,$01,$01,$01,$02
+
 render_idx:
+    .byte 0
+
+tmp:
     .byte 0
 
 update_next_sprite_position:
     inc render_idx
     lda render_idx
-    and 1
-    bne !+
+    and #15
+
+    tax
+    lda increment, x
+    sta tmp
+.break
+
     // load and set y position
-    inc siny_offset
-    lda #0
-    sta render_idx
-!:
-    ldx siny_offset
-    // wrap around if we've overflowed the sin data
-    cpx #127
-    bne !+
-    ldx #0
-    stx siny_offset
-!:
-
-    // load and set x position
-    inc sinx_offset
-    inx
-    // wrap around if we've overflowed the sin data
-    cpx #256
-    bne !+
-    ldx #0
-    stx sinx_offset
-!:
-
+    AddAndWrapIdx(siny_offset, 1, 128)
+    AddAndWrapIdx(sinx_offset, 1, 256)
+    
     ldx #0
 
 update_sprite_position:
@@ -555,4 +585,16 @@ prepare_sprite_x_msb_position_data:
     and #%00001111
     ora dstAddr
     sta dstAddr
+}
+
+.macro AddAndWrapIdx(addr, increment, len) {
+    lda addr
+    adc #increment
+
+    // wrap around if we've overflowed the sin data
+    cmp #len
+    bmi !+
+    sbc #len
+!:
+    sta addr
 }
