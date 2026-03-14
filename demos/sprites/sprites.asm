@@ -10,13 +10,12 @@ BasicUpstart2(start)
 
 .const sprite_count = 24
  
-.const DEBUG = false
+.const DEBUG = true
 
 .macro DebugBg(color) {
     .if (DEBUG) {
         lda #color
         sta $d020
-        sta $d021
     }
 }
 
@@ -68,56 +67,58 @@ sprite01:
 
 
 // uv run main.py --wave 0.0,360,172,147,256 --wave 0,1080.0,0,50 --count 256 --suffix x --combine |pbcopy
+
+
 sinx:
-    .byte $AC,$B3,$BB,$C2,$C9,$D0,$D7,$DE
-    .byte $E4,$EB,$F1,$F7,$FD,$03,$08,$0E
-    .byte $12,$17,$1B,$1F,$23,$26,$2A,$2C
-    .byte $2F,$31,$33,$34,$35,$36,$37,$37
-    .byte $37,$37,$37,$36,$35,$34,$33,$32
-    .byte $30,$2E,$2D,$2B,$29,$27,$25,$23
-    .byte $21,$1F,$1D,$1B,$19,$17,$16,$14
-    .byte $13,$11,$10,$0F,$0E,$0E,$0D,$0D
-    .byte $0D,$0D,$0D,$0E,$0E,$0F,$10,$11
-    .byte $13,$14,$16,$17,$19,$1B,$1D,$1F
-    .byte $21,$23,$25,$27,$29,$2B,$2D,$2E
-    .byte $30,$32,$33,$34,$35,$36,$37,$37
-    .byte $37,$37,$37,$36,$35,$34,$33,$31
-    .byte $2F,$2C,$2A,$26,$23,$1F,$1B,$17
-    .byte $12,$0E,$08,$03,$FD,$F7,$F1,$EB
-    .byte $E4,$DE,$D7,$D0,$C9,$C2,$BB,$B3
-    .byte $AC,$A5,$9D,$96,$8F,$88,$81,$7A
-    .byte $74,$6D,$67,$61,$5B,$55,$50,$4A
-    .byte $46,$41,$3D,$39,$35,$32,$2E,$2C
-    .byte $29,$27,$25,$24,$23,$22,$21,$21
-    .byte $21,$21,$21,$22,$23,$24,$25,$26
-    .byte $28,$2A,$2B,$2D,$2F,$31,$33,$35
-    .byte $37,$39,$3B,$3D,$3F,$41,$42,$44
-    .byte $45,$47,$48,$49,$4A,$4A,$4B,$4B
-    .byte $4B,$4B,$4B,$4A,$4A,$49,$48,$47
-    .byte $45,$44,$42,$41,$3F,$3D,$3B,$39
-    .byte $37,$35,$33,$31,$2F,$2D,$2B,$2A
-    .byte $28,$26,$25,$24,$23,$22,$21,$21
-    .byte $21,$21,$21,$22,$23,$24,$25,$27
-    .byte $29,$2C,$2E,$32,$35,$39,$3D,$41
-    .byte $46,$4A,$50,$55,$5B,$61,$67,$6D
-    .byte $74,$7A,$81,$88,$8F,$96,$9D,$A5
+    .byte $AC,$B5,$BF,$C8,$D1,$DA,$E2,$EB
+    .byte $F3,$FB,$03,$0A,$11,$17,$1D,$22
+    .byte $27,$2B,$2F,$32,$35,$37,$39,$3A
+    .byte $3B,$3A,$3A,$39,$37,$35,$32,$2F
+    .byte $2B,$27,$23,$1E,$19,$14,$0E,$08
+    .byte $02,$FC,$F6,$EF,$E9,$E2,$DC,$D6
+    .byte $D0,$CA,$C4,$BE,$B9,$B4,$B0,$AB
+    .byte $A7,$A4,$A1,$9E,$9C,$9A,$99,$98
+    .byte $98,$98,$99,$9A,$9C,$9E,$A1,$A4
+    .byte $A7,$AB,$B0,$B4,$B9,$BE,$C4,$CA
+    .byte $D0,$D6,$DC,$E2,$E9,$EF,$F6,$FC
+    .byte $02,$08,$0E,$14,$19,$1E,$23,$27
+    .byte $2B,$2F,$32,$35,$37,$39,$3A,$3A
+    .byte $3B,$3A,$39,$37,$35,$32,$2F,$2B
+    .byte $27,$22,$1D,$17,$11,$0A,$03,$FB
+    .byte $F3,$EB,$E2,$DA,$D1,$C8,$BF,$B5
+    .byte $AC,$A3,$99,$90,$87,$7E,$76,$6D
+    .byte $65,$5D,$55,$4E,$47,$41,$3B,$36
+    .byte $31,$2D,$29,$26,$23,$21,$1F,$1E
+    .byte $1D,$1E,$1E,$1F,$21,$23,$26,$29
+    .byte $2D,$31,$35,$3A,$3F,$44,$4A,$50
+    .byte $56,$5C,$62,$69,$6F,$76,$7C,$82
+    .byte $88,$8E,$94,$9A,$9F,$A4,$A8,$AD
+    .byte $B1,$B4,$B7,$BA,$BC,$BE,$BF,$C0
+    .byte $C0,$C0,$BF,$BE,$BC,$BA,$B7,$B4
+    .byte $B1,$AD,$A8,$A4,$9F,$9A,$94,$8E
+    .byte $88,$82,$7C,$76,$6F,$69,$62,$5C
+    .byte $56,$50,$4A,$44,$3F,$3A,$35,$31
+    .byte $2D,$29,$26,$23,$21,$1F,$1E,$1E
+    .byte $1D,$1E,$1F,$21,$23,$26,$29,$2D
+    .byte $31,$36,$3B,$41,$47,$4E,$55,$5D
+    .byte $65,$6D,$76,$7E,$87,$90,$99,$A3
 
 sinx_ub:
     .byte 0,0,0,0,0,0,0,0
-    .byte 0,0,0,0,0,1,1,1
+    .byte 0,0,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
+    .byte 1,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,0,0,0,0
+    .byte 1,1,1,1,1,1,1,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
@@ -182,7 +183,7 @@ sprite_pos_data:
     .fill sprite_count*2,0
 .align $10
 sprite_pos_data_x_ub:
-    .fill 12,0
+    .fill 14,0
 ub_offset:
     .byte 0
 *= $0810
@@ -248,7 +249,7 @@ clear_screen:
 
     lda #BLUE
     sta $d020
-    lda #BLUE
+    lda #BLACK
     sta $d021
 
     rts
@@ -337,7 +338,7 @@ irq_sprite_move:
     DebugBg(WHITE)
 
     lda addr_sprite_pos_idx
-    txa
+    tax
     
     and #4
     asl
@@ -386,7 +387,8 @@ irq_sprite_move:
     sta ub_offset
 
     lda $D007, y
-    adc #24
+    //lda #249
+    adc #21
     sta $d012
 
     lda #<irq_update_sprite_positions
@@ -399,7 +401,7 @@ irq_sprite_move:
     ldx addr_sprite_pos_idx
     ldy sprite_order, x
     lda sprite_pos_y, y
-    sbc #5 // leave a few lines of raster time to reposition sprites
+    sbc #4 // leave a few lines of raster time to reposition sprites
 
     sta $d012
 !:
@@ -412,9 +414,19 @@ irq_update_sprite_positions:
     lda #$01
     sta $d019
 
+    // set 24 line mode to open top/bottom border
+    // lda $d011
+    // and #%11110111
+    // sta $d011
+
     DebugBg(RED)
 
     jsr update_next_sprite_position
+
+    // set 25 line mode to open top/bottom border
+    // lda $d011
+    // ora #%00001000
+    // sta $d011
 
     irq_update_sprite_positions__done:
     
@@ -561,13 +573,15 @@ prepare_sprite_x_msb_position_data:
     BuildSpriteXMsbChunk(sprite_pos_data_x_ub+7, $1f)
     BuildSpriteXMsbChunk(sprite_pos_data_x_ub+9, $27)
     BuildSpriteXMsbChunk(sprite_pos_data_x_ub+11, $2f)
+    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+13, $37)
 
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+11, sprite_pos_data_x_ub+1, sprite_pos_data_x_ub)
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+13, sprite_pos_data_x_ub+1, sprite_pos_data_x_ub)
     PackSpriteXMsbNibbles(sprite_pos_data_x_ub+1, sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+2)    
     PackSpriteXMsbNibbles(sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+4)
     PackSpriteXMsbNibbles(sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+6)
     PackSpriteXMsbNibbles(sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+9, sprite_pos_data_x_ub+8)
     PackSpriteXMsbNibbles(sprite_pos_data_x_ub+9, sprite_pos_data_x_ub+11, sprite_pos_data_x_ub+10)
+    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+11, sprite_pos_data_x_ub+13, sprite_pos_data_x_ub+12)
 
     rts
 
