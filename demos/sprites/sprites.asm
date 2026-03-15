@@ -5,17 +5,19 @@ BasicUpstart2(start)
 
 .const addr_sort_sprite_idx = $81
 .const addr_sort_temp = $82
-.const addr_sprite_pos_idx = $83
+.const addr_sprite_idx = $83
 .const addr_chunk_idx = $84
 
-.const sprite_count = 24
+.const sprite_count = 32
+.const grace_lines = 6
  
-.const DEBUG = true
+.const DEBUG = false
 
 .macro DebugBg(color) {
     .if (DEBUG) {
         lda #color
         sta $d020
+//        sta $d021
     }
 }
 
@@ -67,7 +69,6 @@ sprite01:
 
 
 // uv run main.py --wave 0.0,360,172,147,256 --wave 0,1080.0,0,50 --count 256 --suffix x --combine |pbcopy
-
 
 sinx:
     .byte $AC,$B5,$BF,$C8,$D1,$DA,$E2,$EB
@@ -137,11 +138,13 @@ sinx_ub:
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
 
-
 sinx_offset:
     .byte $0
 
 // uv run main.py --wave 0.0,360,139,89,128 --count 128 --suffix=y|pbcopy
+// uv run main.py --wave 0.0,360,139,89,256 --count 256 --suffix=y|pbcopy
+
+
 siny:
     .byte $8B,$8F,$94,$98,$9C,$A1,$A5,$A9
     .byte $AD,$B1,$B5,$B9,$BC,$C0,$C3,$C7
@@ -161,38 +164,33 @@ siny:
     .byte $69,$6D,$71,$75,$7A,$7E,$82,$87
 
 
+
+
+
 siny_offset:
-    .byte $0
+    .byte $40
 sprite_idx:
     .byte $0
 sprite_idx_offset:
-    .fill 32, i*5
+    .fill sprite_count, i*4
 sprite_pos_x:
-    .fill 32,0
+    .fill sprite_count,0
 sprite_pos_x_ub:
-    .fill 32,0
+    .fill sprite_count,0
 sprite_pos_y:
-    .fill 32,0
+    .fill sprite_count,0
 
 .align $10
 sprite_order:
-    .fill 32,0
+    .fill sprite_count,0
 
-.align $10
-sprite_pos_data:
-    .fill sprite_count*2,0
-.align $10
-sprite_pos_data_x_ub:
-    .fill 14,0
-ub_offset:
-    .byte 0
 *= $0810
 start:
     jsr clear_screen
     jsr init_sprites
     
     lda #0
-    sta addr_sprite_pos_idx
+    sta addr_sprite_idx
     sta addr_chunk_idx
 
     jsr update_next_sprite_position
@@ -216,13 +214,13 @@ start:
     sta $d016 
 
     // update_sprite_position at end of render
-    lda #$40
+    lda #$0
     sta $d012
 
     // use hardware vectors for setting interrupt
-    lda #<irq_sprite_move
+    lda #<irq_demo_main
     sta $fffe
-    lda #>irq_sprite_move
+    lda #>irq_demo_main
     sta $ffff
 
     // enable raster IRQ
@@ -331,109 +329,136 @@ reset_sprite_order:
     
     rts
 
+ub_mask_set:
+    .byte %00000001
+    .byte %00000010
+    .byte %00000100
+    .byte %00001000
+    .byte %00010000
+    .byte %00100000
+    .byte %01000000
+    .byte %10000000
+ub_mask_unset:
+    .byte %11111110
+    .byte %11111101
+    .byte %11111011
+    .byte %11110111
+    .byte %11101111
+    .byte %11011111
+    .byte %10111111
+    .byte %01111111
+
 irq_sprite_move:
     lda #$01
     sta $d019
 
     DebugBg(WHITE)
 
-    lda addr_sprite_pos_idx
+move_next_sprite:
+    lda addr_sprite_idx
     tax
-    
-    and #4
+    and #%0000111
+    tay
+    sty tmp
+
+    lda sprite_order, x
+    tax
+    // x = sw sprite index
+
+    tya
     asl
     tay
+    // y = hw sprite position offset
 
-    txa
-    asl
-    tax
+    //ldx addr_sprite_idx
+    //lda sprite_order, x
+    //tax
 
-    lda sprite_pos_data, x
-    sta $D000, y
-    lda sprite_pos_data+1, x
-    sta $D001, y
+    lda sprite_pos_x, x
+    sta $d000, y
 
-    lda sprite_pos_data+2, x
-    sta $D002, y
-    lda sprite_pos_data+3, x
-    sta $D003, y
+    lda sprite_pos_y, x
+    sta $d000+1, y
 
-    lda sprite_pos_data+4, x
-    sta $D004, y
-    lda sprite_pos_data+5, x
-    sta $D005, y
+    ldy tmp
+    lda sprite_pos_x_ub, x
+    cmp #1
+    beq !set+
+!unset:
+    lda ub_mask_unset, y
+    and $d010
+    sta $d010
+    jmp !ub_done+
+!set:
+    lda ub_mask_set, y
+    ora $d010
+    sta $d010
+!ub_done:
 
-    lda sprite_pos_data+6, x
-    sta $D006, y
-    lda sprite_pos_data+7, x
-    sta $D007, y
-
-    ldx ub_offset
-
+    /*
     lda sprite_pos_data_x_ub, x
     sta $d010
+    */
 
-    clc
-    lda addr_sprite_pos_idx
-    adc #4
-    sta addr_sprite_pos_idx
-
-    inc ub_offset
-
+    inc addr_sprite_idx
+    lda addr_sprite_idx
     cmp #sprite_count
-    bcc !+
-    lda #0
-    sta addr_sprite_pos_idx
-    sta ub_offset
 
-    lda $D007, y
-    //lda #249
-    adc #21
+    bne !+
+    
+    //jsr update_next_sprite_position
+
+    lda $d012
+    adc #2
     sta $d012
 
-    lda #<irq_update_sprite_positions
+    lda #<irq_demo_main
     sta $fffe
-    lda #>irq_update_sprite_positions
+    lda #>irq_demo_main
     sta $ffff
-    jmp !++
+    
+    jmp !done+
+    
+!done:
+    DebugBg(0)
+
+    rti
+    /*
+    ldx sprite_order
+    lda sprite_pos_y, x
+    sbc #1 // make sure we have time to move sprite before it renders
+
+    jmp !set_irq+
+*/
+    //jmp !++
 !:
 
-    ldx addr_sprite_pos_idx
-    ldy sprite_order, x
-    lda sprite_pos_y, y
-    sbc #4 // leave a few lines of raster time to reposition sprites
+    ldx addr_sprite_idx
+    lda sprite_order, x
+    tax
+    lda sprite_pos_y, x
+    sbc #grace_lines
 
+    cmp $d012
+    bcc move_next_sprite
+    beq move_next_sprite
+
+!set_irq:
     sta $d012
-!:
+
     DebugBg(0)
 
     rti
 
-irq_update_sprite_positions:
-    // ack interrupt
+irq_demo_main:
     lda #$01
     sta $d019
 
-    // set 24 line mode to open top/bottom border
-    // lda $d011
-    // and #%11110111
-    // sta $d011
-
-    DebugBg(RED)
-
-    jsr update_next_sprite_position
-
-    // set 25 line mode to open top/bottom border
-    // lda $d011
-    // ora #%00001000
-    // sta $d011
-
-    irq_update_sprite_positions__done:
-    
-    ldx addr_sprite_pos_idx
+    ldx #0
+    stx addr_sprite_idx
     ldy sprite_order, x
     lda sprite_pos_y, y
-    sbc #5 // leave a few lines of raster time to reposition sprites
+    sbc #grace_lines
 
     sta $d012
     
@@ -442,9 +467,12 @@ irq_update_sprite_positions:
     lda #>irq_sprite_move
     sta $ffff
 
-    // reset border color
+    DebugBg(RED)
+
+    jsr update_next_sprite_position
+
     DebugBg(BLACK)
-    
+
     rti
 
 increment:
@@ -545,75 +573,10 @@ sort_sprites__swap_order:
 sort_sprites__done:
     DebugBg(CYAN)
 
-prepare_sprite_position_data:
     lda #0
     sta addr_sort_temp
-    ldx #0
-!:
-    ldy addr_sort_temp
-    lda sprite_order, y
-    tay
-
-    lda sprite_pos_x, y
-    sta sprite_pos_data, x
-    lda sprite_pos_y, y
-    sta sprite_pos_data+1, x
-
-    inx
-    inx
-    inc addr_sort_temp
-    lda addr_sort_temp
-    cmp #sprite_count
-    bne !-
-
-prepare_sprite_x_msb_position_data:
-    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+1, $7)
-    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+3, $f)
-    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+5, $17)
-    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+7, $1f)
-    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+9, $27)
-    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+11, $2f)
-    BuildSpriteXMsbChunk(sprite_pos_data_x_ub+13, $37)
-
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+13, sprite_pos_data_x_ub+1, sprite_pos_data_x_ub)
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+1, sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+2)    
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+3, sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+4)
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+5, sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+6)
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+7, sprite_pos_data_x_ub+9, sprite_pos_data_x_ub+8)
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+9, sprite_pos_data_x_ub+11, sprite_pos_data_x_ub+10)
-    PackSpriteXMsbNibbles(sprite_pos_data_x_ub+11, sprite_pos_data_x_ub+13, sprite_pos_data_x_ub+12)
 
     rts
-
-.macro BuildSpriteXMsbChunk(dstAddr, lastSpriteIdx) {
-    lda #0
-    sta dstAddr
-
-    ldx #lastSpriteIdx+1
-!loop:
-    dex
-    ldy sprite_order, x
-    ora sprite_pos_x_ub, y
-    cpx #lastSpriteIdx-7
-    beq !done+
-    asl
-    jmp !loop-
-!done:
-    sta dstAddr
-}
-
-.macro PackSpriteXMsbNibbles(upperSrcAddr, lowerSrcAddr, dstAddr) {
-    lda #0
-    sta dstAddr
-
-    lda upperSrcAddr
-    and #%11110000
-    sta dstAddr
-    lda lowerSrcAddr
-    and #%00001111
-    ora dstAddr
-    sta dstAddr
-}
 
 .macro AddAndWrapIdx(addr, increment, len) {
     lda addr
