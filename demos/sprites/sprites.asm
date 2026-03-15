@@ -144,7 +144,6 @@ sinx_offset:
 // uv run main.py --wave 0.0,360,139,89,128 --count 128 --suffix=y|pbcopy
 // uv run main.py --wave 0.0,360,139,89,256 --count 256 --suffix=y|pbcopy
 
-
 siny:
     .byte $8B,$8F,$94,$98,$9C,$A1,$A5,$A9
     .byte $AD,$B1,$B5,$B9,$BC,$C0,$C3,$C7
@@ -163,10 +162,6 @@ siny:
     .byte $4C,$4F,$53,$56,$5A,$5D,$61,$65
     .byte $69,$6D,$71,$75,$7A,$7E,$82,$87
 
-
-
-
-
 siny_offset:
     .byte $40
 sprite_idx:
@@ -179,6 +174,14 @@ sprite_pos_x_ub:
     .fill sprite_count,0
 sprite_pos_y:
     .fill sprite_count,0
+
+sprite_pos_buffer_x:
+    .fill sprite_count,0
+sprite_pos_buffer_x_ub:
+    .fill sprite_count,0
+sprite_pos_buffer_y:
+    .fill sprite_count,0
+
 
 .align $10
 sprite_order:
@@ -347,7 +350,9 @@ ub_mask_unset:
     .byte %11011111
     .byte %10111111
     .byte %01111111
-
+tmp:
+    .byte 0
+    
 irq_sprite_move:
     lda #$01
     sta $d019
@@ -374,14 +379,14 @@ move_next_sprite:
     //lda sprite_order, x
     //tax
 
-    lda sprite_pos_x, x
+    lda sprite_pos_buffer_x, x
     sta $d000, y
 
-    lda sprite_pos_y, x
+    lda sprite_pos_buffer_y, x
     sta $d000+1, y
 
     ldy tmp
-    lda sprite_pos_x_ub, x
+    lda sprite_pos_buffer_x_ub, x
     cmp #1
     beq !set+
 !unset:
@@ -440,8 +445,8 @@ move_next_sprite:
     sbc #grace_lines
 
     cmp $d012
-    bcc move_next_sprite
-    beq move_next_sprite
+    bcc !move_next+
+    beq !move_next+
 
 !set_irq:
     sta $d012
@@ -450,9 +455,13 @@ move_next_sprite:
 
     rti
 
+!move_next:
+    jmp move_next_sprite
+
 irq_demo_main:
     lda #$01
     sta $d019
+.break
 
     ldx #0
     stx addr_sprite_idx
@@ -475,24 +484,7 @@ irq_demo_main:
 
     rti
 
-increment:
-    .byte $02,$02,$03,$03,$03,$03,$03,$02
-    .byte $02,$02,$01,$01,$01,$01,$01,$02
-
-render_idx:
-    .byte 0
-
-tmp:
-    .byte 0
-
 update_next_sprite_position:
-    inc render_idx
-    lda render_idx
-    and #15
-
-    tax
-    lda increment, x
-    sta tmp
 
     // load and set y position
     AddAndWrapIdx(siny_offset, 1, 128)
@@ -506,7 +498,7 @@ update_sprite_position:
     lda sinx_offset
     clc
     adc sprite_idx_offset, x
-    
+
     // wrap around if we've overflowed the sin data
     and #255
     tay
@@ -522,7 +514,6 @@ update_sprite_position:
     clc
     adc sprite_idx_offset, x
     
-    // wrap around if we've overflowed the sin data
     and #127
     tay
     
@@ -575,6 +566,21 @@ sort_sprites__done:
 
     lda #0
     sta addr_sort_temp
+
+prepare_buffer:
+    DebugBg(BROWN)
+
+    ldx #0
+!:
+    lda sprite_pos_x, x
+    sta sprite_pos_buffer_x, x
+    lda sprite_pos_x_ub, x
+    sta sprite_pos_buffer_x_ub, x
+    lda sprite_pos_y, x
+    sta sprite_pos_buffer_y, x
+    inx
+    cpx #sprite_count
+    bne !-
 
     rts
 
