@@ -9,7 +9,9 @@ BasicUpstart2(start)
 .const addr_chunk_idx = $84
 
 .const sprite_count = 32
-.const grace_lines = 6
+.const grace_lines = 5
+.const offset_x = 8
+.const offset_y = 8
  
 .const DEBUG = false
 
@@ -17,7 +19,6 @@ BasicUpstart2(start)
     .if (DEBUG) {
         lda #color
         sta $d020
-//        sta $d021
     }
 }
 
@@ -55,9 +56,6 @@ sprite01:
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
     .byte $FF,$FF,$FF,$FF,$FF,$FF,$FF,$FF
 
-
-*= $C000
-
 // Center position
 // Center = (min + max) / 2
 // Center X: (24 + 319) / 2 = 171.5 ≈ 172
@@ -67,59 +65,56 @@ sprite01:
 // Amplitude X: (319 − 24) / 2 = 147.5 ≈ 148
 // Amplitude Y: (228 − 50) / 2 = 89
 
-
 // uv run main.py --wave 0.0,360,172,147,256 --wave 0,1080.0,0,50 --count 256 --suffix x --combine |pbcopy
 
 sinx:
-    .byte $AC,$B5,$BF,$C8,$D1,$DA,$E2,$EB
-    .byte $F3,$FB,$03,$0A,$11,$17,$1D,$22
-    .byte $27,$2B,$2F,$32,$35,$37,$39,$3A
-    .byte $3B,$3A,$3A,$39,$37,$35,$32,$2F
-    .byte $2B,$27,$23,$1E,$19,$14,$0E,$08
-    .byte $02,$FC,$F6,$EF,$E9,$E2,$DC,$D6
-    .byte $D0,$CA,$C4,$BE,$B9,$B4,$B0,$AB
-    .byte $A7,$A4,$A1,$9E,$9C,$9A,$99,$98
-    .byte $98,$98,$99,$9A,$9C,$9E,$A1,$A4
-    .byte $A7,$AB,$B0,$B4,$B9,$BE,$C4,$CA
-    .byte $D0,$D6,$DC,$E2,$E9,$EF,$F6,$FC
-    .byte $02,$08,$0E,$14,$19,$1E,$23,$27
-    .byte $2B,$2F,$32,$35,$37,$39,$3A,$3A
-    .byte $3B,$3A,$39,$37,$35,$32,$2F,$2B
-    .byte $27,$22,$1D,$17,$11,$0A,$03,$FB
-    .byte $F3,$EB,$E2,$DA,$D1,$C8,$BF,$B5
-    .byte $AC,$A3,$99,$90,$87,$7E,$76,$6D
-    .byte $65,$5D,$55,$4E,$47,$41,$3B,$36
-    .byte $31,$2D,$29,$26,$23,$21,$1F,$1E
-    .byte $1D,$1E,$1E,$1F,$21,$23,$26,$29
-    .byte $2D,$31,$35,$3A,$3F,$44,$4A,$50
-    .byte $56,$5C,$62,$69,$6F,$76,$7C,$82
-    .byte $88,$8E,$94,$9A,$9F,$A4,$A8,$AD
-    .byte $B1,$B4,$B7,$BA,$BC,$BE,$BF,$C0
-    .byte $C0,$C0,$BF,$BE,$BC,$BA,$B7,$B4
-    .byte $B1,$AD,$A8,$A4,$9F,$9A,$94,$8E
-    .byte $88,$82,$7C,$76,$6F,$69,$62,$5C
-    .byte $56,$50,$4A,$44,$3F,$3A,$35,$31
-    .byte $2D,$29,$26,$23,$21,$1F,$1E,$1E
-    .byte $1D,$1E,$1F,$21,$23,$26,$29,$2D
-    .byte $31,$36,$3B,$41,$47,$4E,$55,$5D
-    .byte $65,$6D,$76,$7E,$87,$90,$99,$A3
+    .byte $AC,$B0,$B3,$B7,$BA,$BE,$C2,$C5
+    .byte $C9,$CC,$D0,$D3,$D7,$DA,$DE,$E1
+    .byte $E4,$E8,$EB,$EE,$F1,$F4,$F8,$FB
+    .byte $FE,$01,$04,$06,$09,$0C,$0F,$11
+    .byte $14,$16,$19,$1B,$1E,$20,$22,$24
+    .byte $26,$28,$2A,$2C,$2E,$2F,$31,$32
+    .byte $34,$35,$36,$38,$39,$3A,$3B,$3B
+    .byte $3C,$3D,$3D,$3E,$3E,$3F,$3F,$3F
+    .byte $3F,$3F,$3F,$3F,$3E,$3E,$3D,$3D
+    .byte $3C,$3B,$3B,$3A,$39,$38,$36,$35
+    .byte $34,$32,$31,$2F,$2E,$2C,$2A,$28
+    .byte $26,$24,$22,$20,$1E,$1B,$19,$16
+    .byte $14,$11,$0F,$0C,$09,$06,$04,$01
+    .byte $FE,$FB,$F8,$F4,$F1,$EE,$EB,$E8
+    .byte $E4,$E1,$DE,$DA,$D7,$D3,$D0,$CC
+    .byte $C9,$C5,$C2,$BE,$BA,$B7,$B3,$B0
+    .byte $AC,$A8,$A5,$A1,$9E,$9A,$96,$93
+    .byte $8F,$8C,$88,$85,$81,$7E,$7A,$77
+    .byte $74,$70,$6D,$6A,$67,$64,$60,$5D
+    .byte $5A,$57,$54,$52,$4F,$4C,$49,$47
+    .byte $44,$42,$3F,$3D,$3A,$38,$36,$34
+    .byte $32,$30,$2E,$2C,$2A,$29,$27,$26
+    .byte $24,$23,$22,$20,$1F,$1E,$1D,$1D
+    .byte $1C,$1B,$1B,$1A,$1A,$19,$19,$19
+    .byte $19,$19,$19,$19,$1A,$1A,$1B,$1B
+    .byte $1C,$1D,$1D,$1E,$1F,$20,$22,$23
+    .byte $24,$26,$27,$29,$2A,$2C,$2E,$30
+    .byte $32,$34,$36,$38,$3A,$3D,$3F,$42
+    .byte $44,$47,$49,$4C,$4F,$52,$54,$57
+    .byte $5A,$5D,$60,$64,$67,$6A,$6D,$70
+    .byte $74,$77,$7A,$7E,$81,$85,$88,$8C
+    .byte $8F,$93,$96,$9A,$9E,$A1,$A5,$A8
 
 sinx_ub:
     .byte 0,0,0,0,0,0,0,0
-    .byte 0,0,1,1,1,1,1,1
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
-    .byte 1,0,0,0,0,0,0,0
-    .byte 0,0,0,0,0,0,0,0
-    .byte 0,0,0,0,0,0,0,0
-    .byte 0,0,0,0,0,0,0,0
-    .byte 0,0,0,0,0,0,0,0
-    .byte 0,0,0,0,0,0,0,0
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
     .byte 1,1,1,1,1,1,1,1
-    .byte 1,1,1,1,1,1,1,0
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,1,1,1,1
+    .byte 1,1,1,1,1,1,1,1
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
@@ -137,37 +132,50 @@ sinx_ub:
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
     .byte 0,0,0,0,0,0,0,0
-
-sinx_offset:
-    .byte $0
+    .byte 0,0,0,0,0,0,0,0
+    .byte 0,0,0,0,0,0,0,0
 
 // uv run main.py --wave 0.0,360,139,89,128 --count 128 --suffix=y|pbcopy
 // uv run main.py --wave 0.0,360,139,89,256 --count 256 --suffix=y|pbcopy
 
-siny:
-    .byte $8B,$8F,$94,$98,$9C,$A1,$A5,$A9
-    .byte $AD,$B1,$B5,$B9,$BC,$C0,$C3,$C7
-    .byte $CA,$CD,$D0,$D2,$D5,$D7,$D9,$DB
-    .byte $DD,$DF,$E0,$E1,$E2,$E3,$E4,$E4
-    .byte $E4,$E4,$E4,$E3,$E2,$E1,$E0,$DF
-    .byte $DD,$DB,$D9,$D7,$D5,$D2,$D0,$CD
-    .byte $CA,$C7,$C3,$C0,$BC,$B9,$B5,$B1
-    .byte $AD,$A9,$A5,$A1,$9C,$98,$94,$8F
-    .byte $8B,$87,$82,$7E,$7A,$75,$71,$6D
-    .byte $69,$65,$61,$5D,$5A,$56,$53,$4F
-    .byte $4C,$49,$46,$44,$41,$3F,$3D,$3B
-    .byte $39,$37,$36,$35,$34,$33,$32,$32
-    .byte $32,$32,$32,$33,$34,$35,$36,$37
-    .byte $39,$3B,$3D,$3F,$41,$44,$46,$49
-    .byte $4C,$4F,$53,$56,$5A,$5D,$61,$65
-    .byte $69,$6D,$71,$75,$7A,$7E,$82,$87
 
-siny_offset:
-    .byte $40
+siny:
+    .byte $8B,$8D,$8F,$92,$94,$96,$98,$9A
+    .byte $9C,$9F,$A1,$A3,$A5,$A7,$A9,$AB
+    .byte $AD,$AF,$B1,$B3,$B5,$B7,$B9,$BB
+    .byte $BC,$BE,$C0,$C2,$C3,$C5,$C7,$C8
+    .byte $CA,$CB,$CD,$CE,$D0,$D1,$D2,$D4
+    .byte $D5,$D6,$D7,$D8,$D9,$DA,$DB,$DC
+    .byte $DD,$DE,$DF,$E0,$E0,$E1,$E1,$E2
+    .byte $E2,$E3,$E3,$E3,$E4,$E4,$E4,$E4
+    .byte $E4,$E4,$E4,$E4,$E4,$E3,$E3,$E3
+    .byte $E2,$E2,$E1,$E1,$E0,$E0,$DF,$DE
+    .byte $DD,$DC,$DB,$DA,$D9,$D8,$D7,$D6
+    .byte $D5,$D4,$D2,$D1,$D0,$CE,$CD,$CB
+    .byte $CA,$C8,$C7,$C5,$C3,$C2,$C0,$BE
+    .byte $BC,$BB,$B9,$B7,$B5,$B3,$B1,$AF
+    .byte $AD,$AB,$A9,$A7,$A5,$A3,$A1,$9F
+    .byte $9C,$9A,$98,$96,$94,$92,$8F,$8D
+    .byte $8B,$89,$87,$84,$82,$80,$7E,$7C
+    .byte $7A,$77,$75,$73,$71,$6F,$6D,$6B
+    .byte $69,$67,$65,$63,$61,$5F,$5D,$5B
+    .byte $5A,$58,$56,$54,$53,$51,$4F,$4E
+    .byte $4C,$4B,$49,$48,$46,$45,$44,$42
+    .byte $41,$40,$3F,$3E,$3D,$3C,$3B,$3A
+    .byte $39,$38,$37,$36,$36,$35,$35,$34
+    .byte $34,$33,$33,$33,$32,$32,$32,$32
+    .byte $32,$32,$32,$32,$32,$33,$33,$33
+    .byte $34,$34,$35,$35,$36,$36,$37,$38
+    .byte $39,$3A,$3B,$3C,$3D,$3E,$3F,$40
+    .byte $41,$42,$44,$45,$46,$48,$49,$4B
+    .byte $4C,$4E,$4F,$51,$53,$54,$56,$58
+    .byte $5A,$5B,$5D,$5F,$61,$63,$65,$67
+    .byte $69,$6B,$6D,$6F,$71,$73,$75,$77
+    .byte $7A,$7C,$7E,$80,$82,$84,$87,$89
+
+
 sprite_idx:
     .byte $0
-sprite_idx_offset:
-    .fill sprite_count, i*4
 sprite_pos_x:
     .fill sprite_count,0
 sprite_pos_x_ub:
@@ -175,19 +183,13 @@ sprite_pos_x_ub:
 sprite_pos_y:
     .fill sprite_count,0
 
-sprite_pos_buffer_x:
-    .fill sprite_count,0
-sprite_pos_buffer_x_ub:
-    .fill sprite_count,0
-sprite_pos_buffer_y:
-    .fill sprite_count,0
-
-
 .align $10
 sprite_order:
     .fill sprite_count,0
 
-*= $0810
+frame_idx:
+    .byte 0
+
 start:
     jsr clear_screen
     jsr init_sprites
@@ -375,18 +377,14 @@ move_next_sprite:
     tay
     // y = hw sprite position offset
 
-    //ldx addr_sprite_idx
-    //lda sprite_order, x
-    //tax
-
-    lda sprite_pos_buffer_x, x
+    lda sprite_pos_x, x
     sta $d000, y
 
-    lda sprite_pos_buffer_y, x
+    lda sprite_pos_y, x
     sta $d000+1, y
 
     ldy tmp
-    lda sprite_pos_buffer_x_ub, x
+    lda sprite_pos_x_ub, x
     cmp #1
     beq !set+
 !unset:
@@ -400,18 +398,11 @@ move_next_sprite:
     sta $d010
 !ub_done:
 
-    /*
-    lda sprite_pos_data_x_ub, x
-    sta $d010
-    */
-
     inc addr_sprite_idx
     lda addr_sprite_idx
     cmp #sprite_count
 
     bne !+
-    
-    //jsr update_next_sprite_position
 
     lda $d012
     adc #2
@@ -428,14 +419,7 @@ move_next_sprite:
     DebugBg(0)
 
     rti
-    /*
-    ldx sprite_order
-    lda sprite_pos_y, x
-    sbc #1 // make sure we have time to move sprite before it renders
 
-    jmp !set_irq+
-*/
-    //jmp !++
 !:
 
     ldx addr_sprite_idx
@@ -461,7 +445,8 @@ move_next_sprite:
 irq_demo_main:
     lda #$01
     sta $d019
-.break
+
+    inc frame_idx
 
     ldx #0
     stx addr_sprite_idx
@@ -484,43 +469,48 @@ irq_demo_main:
 
     rti
 
-update_next_sprite_position:
+phase_x: .byte 0
+phase_y: .byte 30
 
-    // load and set y position
-    AddAndWrapIdx(siny_offset, 1, 128)
-    AddAndWrapIdx(sinx_offset, 1, 256)
-    
+update_next_sprite_position:
+    inc phase_x
+    inc phase_y
+    inc phase_y
+
     ldx #0
 
 update_sprite_position:
     // x-position
+    ldy phase_x
 
-    lda sinx_offset
+    tya
     clc
-    adc sprite_idx_offset, x
-
-    // wrap around if we've overflowed the sin data
-    and #255
+    adc #offset_x
     tay
+
+    sta phase_x
 
     lda sinx, y
     sta sprite_pos_x, x
 
     lda sinx_ub, y
     sta sprite_pos_x_ub, x
-    
+
     // y-position
-    lda siny_offset
+    ldy phase_y
+
+    tya
     clc
-    adc sprite_idx_offset, x
-    
-    and #127
+    adc #offset_y
     tay
-    
+
+    sta phase_y
+
     lda siny, y
     sta sprite_pos_y, x
 
     inx
+
     cpx #sprite_count
     bne update_sprite_position
 
@@ -566,32 +556,4 @@ sort_sprites__done:
 
     lda #0
     sta addr_sort_temp
-
-prepare_buffer:
-    DebugBg(BROWN)
-
-    ldx #0
-!:
-    lda sprite_pos_x, x
-    sta sprite_pos_buffer_x, x
-    lda sprite_pos_x_ub, x
-    sta sprite_pos_buffer_x_ub, x
-    lda sprite_pos_y, x
-    sta sprite_pos_buffer_y, x
-    inx
-    cpx #sprite_count
-    bne !-
-
     rts
-
-.macro AddAndWrapIdx(addr, increment, len) {
-    lda addr
-    adc #increment
-
-    // wrap around if we've overflowed the sin data
-    cmp #len
-    bmi !+
-    sbc #len
-!:
-    sta addr
-}
