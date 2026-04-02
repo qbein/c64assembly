@@ -1,3 +1,7 @@
+.const DEBUG = false
+
+#import "../../lib/macros.asm"
+
 .var continue_basic=$ea31
 .var continue_short=$ea81
 
@@ -12,17 +16,9 @@ BasicUpstart2(start)
 .const grace_lines = 5
 .const offset_x = 8
 .const offset_y = 8
- 
-.const DEBUG = false
-
-.macro DebugBg(color) {
-    .if (DEBUG) {
-        lda #color
-        sta $d020
-    }
-}
 
 *= $2000
+
 sprite_circle:
     .byte $03, $AA, $C0
 	.byte $06, $AA, $90
@@ -191,7 +187,7 @@ frame_idx:
     .byte 0
 
 start:
-    jsr clear_screen
+    jsr clear
     jsr init_sprites
     
     lda #0
@@ -200,55 +196,10 @@ start:
 
     jsr update_next_sprite_position
 
-    sei
+    InitIrq(<irq_demo_main, >irq_demo_main, 0)
 
-    // disable CIA interrupts:
-    lda #%01111111
-    sta $dc0d
-    sta $dd0d
-
-    // select VIC bank 0 ($0000-$3FFF)
-    lda #%00000011
-    sta $dd00
-
-    // turn screen on, 25-row text mode
-    lda #%00011011
-    sta $d011
-    // standard horizontal scroll
-    lda #%00001000
-    sta $d016 
-
-    // update_sprite_position at end of render
-    lda #$0
-    sta $d012
-
-    // use hardware vectors for setting interrupt
-    lda #<irq_demo_main
-    sta $fffe
-    lda #>irq_demo_main
-    sta $ffff
-
-    // enable raster IRQ
-    lda #%00000001
-    sta $d01a
-
-    // keep IO on, but switch out BASIC+KERNAL
-    lda #%00110101
-    sta $01
-
-    cli
-    jmp *
-    
-clear_screen:
-    lda #$20
-    ldx #0
-!:   
-    sta $0400,x
-    sta $0500,x
-    sta $0600,x
-    sta $0700,x
-    dex
-    bne !-
+clear:
+    Fill(' ')
 
     lda #BLUE
     sta $d020
@@ -557,3 +508,4 @@ sort_sprites__done:
     lda #0
     sta addr_sort_temp
     rts
+
