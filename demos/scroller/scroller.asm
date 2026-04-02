@@ -1,171 +1,103 @@
-#import "routines/scroll.asm"
-#import "routines/fill-screen-direct.asm"
+.const DEBUG = false
 
-:BasicUpstart2(main)
+#import "../../lib/macros.asm"
 
-.var continue_basic=$ea31
-.var continue_short=$ea81
+:BasicUpstart2(start)
 
-start_char:     .byte   $41
-end_char:       .byte   $57
-char:           .byte   start_char
-pixel_offset:   .byte   00
+.const ptr = $84
+
+start:
+    lda #<text
+    sta ptr
+    lda #>text
+    sta ptr+1
+    
+    InitIrq(<main, >main, $ff)
+    
+text:
+    .text "   lorem ipsum dolor sit amet, consectetur adipiscing elit. nunc convallis, elit at rutrum feugiat, ligula ex tincidunt nulla, sit amet elementum mi nisl sed neque. vivamus ut viverra dolor. quisque vehicula sed felis a volutpat. in posuere sollicitudin lectus, et finibus libero. nulla facilisi. cras ullamcorper ultrices risus, ac mollis est. proin vehicula quam ligula, quis varius libero ultricies sit amet. sed lacinia odio tortor. in venenatis neque nulla. aliquam commodo placerat lacinia. duis tortor nunc, tincidunt a urna vel, tempus bibendum nunc. mauris ultricies luctus finibus. praesent pulvinar auctor mi eget suscipit. vestibulum sem sem, laoreet et molestie quis, tincidunt quis velit. maecenas ornare vel tortor eget egestas. "
+    .byte 0
+
+reset_ptr:
+    lda #<text
+    sta ptr
+    lda #>text
+    sta ptr+1
+
+next_char:
+    ldy #0
+    lda (ptr), y
+    tax
+
+    cmp #0
+    beq reset_ptr
+!:
+
+    MoveChar($0400)
+    MoveChar($0428)
+    MoveChar($0450)
+    MoveChar($0478)
+    MoveChar($04A0)
+    MoveChar($04C8)
+    MoveChar($04F0)
+
+    MoveChar($0518)
+    MoveChar($0540)
+    MoveChar($0568)
+    MoveChar($0590)
+    MoveChar($05B8)
+    MoveChar($05E0)
+
+    MoveChar($0608)
+    MoveChar($0630)
+    MoveChar($0658)
+    MoveChar($0680)
+    MoveChar($06A8)
+    MoveChar($06D0)
+    MoveChar($06F8)
+    
+    MoveChar($0720)
+    MoveChar($0748)
+    MoveChar($0770)
+    MoveChar($0798)
+    MoveChar($07C0)
+
+    inc ptr
+    bne !done+
+    inc ptr+1
+!done:
+
+    jmp done
 
 main:
-    jsr disable_cursor
-    FillScreen($2a)
-    
-    // disable interrupts
-    sei           
-    // switch off interrupt signals from CIA-1                     
-    lda #%01111111
-    sta $dc0d
+    lda #1
+    sta $d019
 
-    // clear most significant bit of VIC's raster register
-    and $d011
-    sta $d011
-
-    // acknowledge pending interrupts from CIA-1
-    lda $dc0d
-    // acknowledge pending interrupts from CIA-2
-    lda $dd0d
-
-    // set rasterline where interrupt shall occur
-    lda #$00
-    sta $d012
-
-    // set interrupt vectors, pointing to interrupt service routine below
-    lda #<scroll
-    sta $0314
-    lda #>scroll
-    sta $0315
-
-    // enable raster interrupt signals from VIC
-    lda #%00000001
-    sta $d01a
-
-    // clear interrupt flag, allowing the CPU to respond to interrupt requests
-    cli
-    rts
 scroll:
-    // use border to show processing time
-    lda #$00
-    sta $d020
-    
-    ScrollLeft(1)
-    beq done
-    tay
-shift:
-    jsr shift_text
-    dey
-    tya
-    bne shift
-done:
-    jmp continue
-continue:
-    // ; acknowledge the interrupt by clearing the VIC's interrupt flag
-    asl $d019
-    lda #$0e
-    sta $d020
-    jmp continue_short
-shift_text:
-    SaveLeftOverflowChar($0400, $5400, 0)
-    SaveLeftOverflowChar($0400, $5400, 1)
-    SaveLeftOverflowChar($0400, $5400, 2)
-    SaveLeftOverflowChar($0400, $5400, 3)
-    SaveLeftOverflowChar($0400, $5400, 4)
-    SaveLeftOverflowChar($0400, $5400, 5)
-    SaveLeftOverflowChar($0400, $5400, 6)
-    SaveLeftOverflowChar($0400, $5400, 7)
-    SaveLeftOverflowChar($0400, $5400, 8)
-    SaveLeftOverflowChar($0400, $5400, 9)
-    SaveLeftOverflowChar($0400, $5400, 10)
-    SaveLeftOverflowChar($0400, $5400, 11)
-    SaveLeftOverflowChar($0400, $5400, 12)
-    SaveLeftOverflowChar($0400, $5400, 13)
-    SaveLeftOverflowChar($0400, $5400, 14)
-    SaveLeftOverflowChar($0400, $5400, 15)
-    SaveLeftOverflowChar($0400, $5400, 16)
-    SaveLeftOverflowChar($0400, $5400, 17)
-    SaveLeftOverflowChar($0400, $5400, 18)
-    SaveLeftOverflowChar($0400, $5400, 19)
-    SaveLeftOverflowChar($0400, $5400, 20)
-    SaveLeftOverflowChar($0400, $5400, 21)
-    SaveLeftOverflowChar($0400, $5400, 22)
-    SaveLeftOverflowChar($0400, $5400, 23)
-    SaveLeftOverflowChar($0400, $5400, 24)
-    SaveLeftOverflowChar($0400, $5400, 25)
+    DebugBg(WHITE)
 
-    ldx #$00
-loop1: 
-    MoveCharLeft(0)
-    MoveCharLeft(1)
-    MoveCharLeft(2)
-    MoveCharLeft(3)
-    MoveCharLeft(4)
-    MoveCharLeft(5)
-    MoveCharLeft(6)
-    MoveCharLeft(7)
-    MoveCharLeft(8)
-    MoveCharLeft(9)
-    MoveCharLeft(10)
-    MoveCharLeft(11)
-    MoveCharLeft(12)
-    MoveCharLeft(13)
-    inx
-    cpx #$27
-    bne loop1
-    
-    ldx #$00 
-loop2:
-    MoveCharLeft(14)
-    MoveCharLeft(15)
-    MoveCharLeft(16)
-    MoveCharLeft(17)
-    MoveCharLeft(18)
-    MoveCharLeft(19)
-    MoveCharLeft(20)
-    MoveCharLeft(21)
-    MoveCharLeft(22)
-    MoveCharLeft(23)
-    MoveCharLeft(24)
-    MoveCharLeft(25)
-    inx
-    cpx #$27
-    bne loop2
-    
-    InsertOverflowCharRight($0400, $5400, 0)
-    InsertOverflowCharRight($0400, $5400, 1)
-    InsertOverflowCharRight($0400, $5400, 2)
-    InsertOverflowCharRight($0400, $5400, 3)
-    InsertOverflowCharRight($0400, $5400, 4)
-    InsertOverflowCharRight($0400, $5400, 5)
-    InsertOverflowCharRight($0400, $5400, 6)
-    InsertOverflowCharRight($0400, $5400, 7)
-    InsertOverflowCharRight($0400, $5400, 8)
-    InsertOverflowCharRight($0400, $5400, 9)
-    InsertOverflowCharRight($0400, $5400, 10)
-    InsertOverflowCharRight($0400, $5400, 11)
-    InsertOverflowCharRight($0400, $5400, 12)
-    InsertOverflowCharRight($0400, $5400, 13)
-    InsertOverflowCharRight($0400, $5400, 14)
-    InsertOverflowCharRight($0400, $5400, 15)
-    InsertOverflowCharRight($0400, $5400, 16)
-    InsertOverflowCharRight($0400, $5400, 17)
-    InsertOverflowCharRight($0400, $5400, 18)
-    InsertOverflowCharRight($0400, $5400, 19)
-    InsertOverflowCharRight($0400, $5400, 20)
-    InsertOverflowCharRight($0400, $5400, 21)
-    InsertOverflowCharRight($0400, $5400, 22)
-    InsertOverflowCharRight($0400, $5400, 23)
-    InsertOverflowCharRight($0400, $5400, 24)
-    InsertOverflowCharRight($0400, $5400, 25)
-    rts
-disable_cursor:
-    // wait for cursor to blink out
-    lda $cf
-    bne disable_cursor
-    lda #$01
-    sta $cc
-    rts
-    
+    dec SCROLL_X
+    lda SCROLL_X
+    and #7
+    sta SCROLL_X
+    cmp #7
+    bne done
+    jmp next_char
+done:    
+
+    DebugBg(BLACK)
+
+    rti
+
+.macro MoveChar(line_start) {
+    ldy #$0
+!:
+    lda line_start+1, y
+    sta line_start, y
+    iny
+    cpy #$27
+    bne !-
+
+    txa
+    sta line_start+$27
+}
