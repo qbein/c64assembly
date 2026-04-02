@@ -1,4 +1,4 @@
-.const DEBUG = true
+.const DEBUG = false
 
 #import "../../lib/macros.asm"
 
@@ -133,91 +133,78 @@ done:
 
     rti
 
-.macro MoveChar(line_start) {
-    ldy #$0
-!:
-    lda line_start+1, y
-    sta line_start, y
-    iny
-    cpy #$27
-    bne !-
-
-    txa
-    sta line_start+$27
-}
-
 text_00: 
-    .text "lorem ipsum dolor sit amet,   -  " // consectetur adipiscing elit. nunc convallis, elit at rutrum feugiat, ligula ex tincidunt nulla, sit amet elementum mi nisl sed neque. vivamus ut viverra dolor. quisque vehicula sed felis a volutpat. in posuere sollicitudin lectus, et finibus libero. nulla facilisi. cras ullamcorper ultrices risus, ac mollis est. proin vehicula quam ligula, quis varius libero ultricies sit amet. sed lacinia odio tortor. in venenatis neque nulla. aliquam commodo placerat lacinia. duis tortor nunc, tincidunt a urna vel, tempus bibendum nunc. mauris ultricies luctus finibus. praesent pulvinar auctor mi eget suscipit. vestibulum sem sem, laoreet et molestie quis, tincidunt quis velit. maecenas ornare vel tortor eget egestas. " 
+    .text "lorem ipsum dolor sit amet, consectetur adipiscing elit. nunc convallis, elit at rutrum feugiat, ligula ex tincidunt nulla, sit amet elementum mi nisl sed neque. vivamus ut viverra dolor. quisque vehicula sed felis a volutpat. in posuere sollicitudin lectus, et finibus libero. nulla facilisi. cras ullamcorper ultrices risus, ac mollis est. proin vehicula quam ligula, quis varius libero ultricies sit amet. sed lacinia odio tortor. in venenatis neque nulla. aliquam commodo placerat lacinia. duis tortor nunc, tincidunt a urna vel, tempus bibendum nunc. mauris ultricies luctus finibus. praesent pulvinar auctor mi eget suscipit. vestibulum sem sem, laoreet et molestie quis, tincidunt quis velit. maecenas ornare vel tortor eget egestas.   ###  " 
     .byte 0
 text_01: 
-    .text "nunc pellentesque velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "nunc pellentesque velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_02: 
-    .text "pellentesque velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "pellentesque velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_03: 
-    .text "velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_04: 
-    .text "odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_05: 
-    .text "sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_06: 
-    .text "cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_07: 
-    .text "augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_08: 
-    .text "tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_09: 
-    .text "ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_0a: 
-    .text "suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_0b: 
-    .text "at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_0c: 
-    .text "leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_0d: 
-    .text "tesque velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "tesque velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_0e: 
-    .text "velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "velit odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_0f: 
-    .text "odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "odio, sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_10: 
-    .text "sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "sed cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_11: 
-    .text "cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "cursus augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_12: 
-    .text "augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "augue tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_13: 
-    .text "tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "tincidunt ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_14: 
-    .text "ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "ac. suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_15: 
-    .text "suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "suspendisse at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_16: 
-    .text "at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "at leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_17: 
-    .text "leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "leo consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0
 text_18: 
-    .text "consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   -  " 
+    .text "consequat, scelerisque nisi quis, malesuada tellus. lorem ipsum dolor sit amet, consectetur adipiscing elit.   ###  " 
     .byte 0

@@ -1,11 +1,31 @@
 .const SCROLL_Y=$d011
 .const SCROLL_X=$d016
 
+/**
+ * Change background color if DEBUG is true.
+ */
 .macro DebugBg(color) {
     .if (DEBUG) {
         lda #color
         sta $d020
     }
+}
+
+/**
+ * Move line one char to the left.
+ * Inserts char in x-registry as new char on line.
+ */
+.macro MoveChar(line_start) {
+    ldy #$0
+!:
+    lda line_start+1, y
+    sta line_start, y
+    iny
+    cpy #$27
+    bne !-
+
+    txa
+    sta line_start+$27
 }
 
 .macro Fill(char) {
@@ -20,6 +40,9 @@ loop:
     bne loop
 }
 
+/**
+ * Initialize raster irq as line.
+ */
 .macro InitIrq(irq_low, irq_high, line) {
     sei
 
