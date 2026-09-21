@@ -16,16 +16,86 @@
  * Inserts char in x-registry as new char on line.
  */
 .macro MoveChar(line_start) {
-    ldy #$0
-!:
-    lda line_start+1, y
-    sta line_start, y
-    iny
-    cpy #$27
-    bne !-
-
-    txa
-    sta line_start+$27
+    lda line_start+1
+    sta line_start
+    lda line_start+2
+    sta line_start+1
+    lda line_start+3
+    sta line_start+2
+    lda line_start+4
+    sta line_start+3
+    lda line_start+5
+    sta line_start+4
+    lda line_start+6
+    sta line_start+5
+    lda line_start+7
+    sta line_start+6
+    lda line_start+8
+    sta line_start+7
+    lda line_start+9
+    sta line_start+8
+    lda line_start+10
+    sta line_start+9
+    lda line_start+11
+    sta line_start+10
+    lda line_start+12
+    sta line_start+11
+    lda line_start+13
+    sta line_start+12
+    lda line_start+14
+    sta line_start+13
+    lda line_start+15
+    sta line_start+14
+    lda line_start+16
+    sta line_start+15
+    lda line_start+17
+    sta line_start+16
+    lda line_start+18
+    sta line_start+17
+    lda line_start+19
+    sta line_start+18
+    lda line_start+20
+    sta line_start+19
+    lda line_start+21
+    sta line_start+20
+    lda line_start+22
+    sta line_start+21
+    lda line_start+23
+    sta line_start+22
+    lda line_start+24
+    sta line_start+23
+    lda line_start+25
+    sta line_start+24
+    lda line_start+26
+    sta line_start+25
+    lda line_start+27
+    sta line_start+26
+    lda line_start+28
+    sta line_start+27
+    lda line_start+29
+    sta line_start+28
+    lda line_start+30
+    sta line_start+29
+    lda line_start+31
+    sta line_start+30
+    lda line_start+32
+    sta line_start+31
+    lda line_start+33
+    sta line_start+32
+    lda line_start+34
+    sta line_start+33
+    lda line_start+35
+    sta line_start+34
+    lda line_start+36
+    sta line_start+35
+    lda line_start+37
+    sta line_start+36
+    lda line_start+38
+    sta line_start+37
+    lda line_start+39
+    sta line_start+38
+    
+    stx line_start+39
 }
 
 .macro Fill(char) {
@@ -83,4 +153,9 @@ loop:
 
     cli
     jmp *
+}
+
+.macro EnableSprites(sprites) {
+    lda #sprites
+    sta $d015
 }
