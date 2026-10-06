@@ -64,6 +64,30 @@ siny:
     .byte $60,$63,$65,$68,$6B,$6D,$70,$73
     .byte $76,$78,$7B,$7E,$81,$84,$86,$89
 
+sprite_idx:
+    .byte $0
+sprite_priority:
+    .byte $0
+
+sprite_mask_set:
+    .byte %00000001
+    .byte %00000010
+    .byte %00000100
+    .byte %00001000
+    .byte %00010000
+    .byte %00100000
+    .byte %01000000
+    .byte %10000000
+sprite_mask_unset:
+    .byte %11111110
+    .byte %11111101
+    .byte %11111011
+    .byte %11110111
+    .byte %11101111
+    .byte %11011111
+    .byte %10111111
+    .byte %01111111
+
 .macro ResetPtr(addr_target, ptr) {
     lda #<addr_target
     sta ptr
@@ -233,11 +257,13 @@ done:
 
     DebugBg(YELLOW)
 
-    lda #$00
-    sta $d01b
+    // clear ghost byte and sprite index
+    lda #0
+    sta $3fff
+    sta sprite_idx
 
     ldy #0
-!:
+move_sprite_start:
     tya
     asl
     asl
@@ -249,11 +275,43 @@ done:
     lda siny, x
     sta $d001, y
 
+set_sprite_priority:
+    // flip sprite priority at top and bottom positions
+    pha
+    tya
+    pha
+
+    ldy sprite_idx
+
+    lda siny, x
+    cmp #$ff
+    bne !next+
+    lda sprite_mask_set, y
+    // $d01b -> sprite priority
+    ora $d01b
+    jmp !store+
+!next:
+    cmp #$19
+    bne !skip+
+    lda sprite_mask_unset, y
+    and $d01b
+!store:
+    sta $d01b
+!skip:
+    inc sprite_idx
+
+    pla
+    tay
+    pla
+
+set_sprite_priority_done:
+    
     iny
     iny
 
+    // Move all 8 sprites
     cpy #16
-    bne !-
+    bne move_sprite_start
 
     dec sprite_offset
     dec sprite_offset
