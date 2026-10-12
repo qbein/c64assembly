@@ -91,27 +91,8 @@ sprite_mask_unset:
 *= $2000
 
 sprite_circle:
-    .byte $03, $AA, $C0
-	.byte $06, $AA, $90
-	.byte $0A, $AA, $A0
-	.byte $1A, $AA, $A4
-	.byte $2A, $AA, $A8
-	.byte $EA, $AA, $AB
-	.byte $6A, $AA, $A9
-	.byte $6A, $AA, $A9
-	.byte $AA, $AA, $AA
-	.byte $AA, $AA, $AA
-	.byte $AA, $AA, $AA
-	.byte $AA, $AA, $AA
-	.byte $AA, $AA, $AA
-	.byte $6A, $AA, $A9
-	.byte $6A, $AA, $A9
-	.byte $EA, $AA, $AB
-	.byte $2A, $AA, $A8
-	.byte $1A, $AA, $A4
-	.byte $0A, $AA, $A0
-	.byte $06, $AA, $90
-	.byte $03, $AA, $C0
+    .fill 63, $ff
+    .byte 0
 
 .macro ResetPtr(addr_target, ptr) {
     lda #<addr_target
@@ -169,12 +150,12 @@ start:
     bne !-
 
     // sprite mode
-    lda #$ff
-    sta $d01c
+    //lda #$ff
+    //sta $d01c
 
     // set sprite colors
     ldx #0
-    lda #CYAN
+    lda #BLUE
 !:
     sta $d027, x
     inx
@@ -341,7 +322,7 @@ set_sprite_priority:
     // $d01b -> sprite priority
     ora $d01b
     sta $d01b
-    lda #CYAN
+    lda #BLUE
     sta $d027, y
     jmp !skip+
 !next:
