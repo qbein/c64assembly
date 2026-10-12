@@ -1,5 +1,5 @@
-KICK   = java -jar $(HOME)/tools/KickAss.jar
-RD     = $(HOME)/tools/retrodebugger
+KICK  = java -jar "$(KICKASS_JAR_PATH)"
+RD    = "$(RETRODBG_PATH)"
 
 .SUFFIXES:
 .PRECIOUS: %.prg
